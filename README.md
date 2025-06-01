@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 
 # FacultyEval - Installation Guide for Ubuntu VM
 
@@ -285,3 +286,6 @@ For questions or feedback, contact [your name] at [your email] or open an issue 
 - **Search Results**: The provided search results for `facultyeval.git` were mostly generic GitHub-related content and not specific to your repository. I relied on the Django and PostgreSQL context instead. A recent X post about using PostgreSQL with Django was noted but not directly relevant.
 - **Verification**: If you confirm the repository URL or share its contents, I can verify and tailor the guide further (e.g., specific settings, custom migrations, or additional setup steps).
 
+=======
+# faculty_student
+>>>>>>> 2edb05646cd067c2a3d175a490a67c64c57a0e99
