@@ -1,0 +1,199 @@
+{% extends "responseupload/base.html" %} {# Or your manager panel base template #}
+{% load static %}
+{% load custom_filters %} {# Load if needed, e.g., for get_item #}
+
+{% block title %}Course Assignments{% endblock %}
+
+{% block extra_head %}
+    {# Add page-specific CSS here if needed #}
+    <style>
+        .table th, .table td {
+            vertical-align: middle;
+        }
+        .table thead th {
+             white-space: nowrap;
+        }
+        .action-buttons form {
+            margin-bottom: 0; /* Remove default form margin */
+        }
+         .filter-form .form-label {
+            font-size: 0.85rem; /* Smaller labels for filter */
+        }
+    </style>
+{% endblock %}
+
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2"> {# Added flex-wrap and gap #}
+        <h2>Course Assignments</h2>
+        <div class="text-nowrap"> {# Prevent button wrapping #}
+            <a href="{% url 'managerpanel:create_course_assignment' %}" class="btn btn-primary btn-sm"> {# Made button small #}
+                <i class="bi bi-plus-circle me-1"></i> Assign New Course
+            </a>
+             <a href="{% url 'managerpanel:manager_dashboard' %}" class="btn btn-secondary btn-sm"> {# Made button small #}
+                <i class="bi bi-arrow-left-circle me-1"></i> Back to Dashboard
+             </a>
+        </div>
+    </div>
+
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    {# --- Simple Filter Form --- #}
+    <form method="get" class="row g-3 mb-4 align-items-end bg-light p-3 border rounded filter-form">
+        <div class="col-md-3 col-lg-3">
+            <label for="course_q" class="form-label">Course (Code/Name)</label>
+            <input type="text" name="course_q" id="course_q" class="form-control form-control-sm" value="{{ course_query|default:'' }}" placeholder="Enter code or name...">
+        </div>
+        <div class="col-md-3 col-lg-3">
+            <label for="faculty_q" class="form-label">Faculty (User/Name)</label>
+            <input type="text" name="faculty_q" id="faculty_q" class="form-control form-control-sm" value="{{ faculty_query|default:'' }}" placeholder="Enter username or name...">
+        </div>
+         <div class="col-md-3 col-lg-3">
+            <label for="batch_q" class="form-label">Batch Name</label>
+            <input type="text" name="batch_q" id="batch_q" class="form-control form-control-sm" value="{{ batch_query|default:'' }}" placeholder="Enter batch name...">
+        </div>
+        {# Add Semester/Year Filters #}
+        <div class="col-md-3 col-lg-2">
+             <label for="id_semester" class="form-label">Semester</label>
+             <select name="semester" id="id_semester" class="form-select form-select-sm">
+                 <option value="">All</option>
+                 {% for sem in available_semesters %}
+                 <option value="{{ sem.id }}" {% if sem.id|stringformat:"s" == selected_semester_id %}selected{% endif %}>{{ sem.name }}</option>
+                 {% endfor %}
+             </select>
+        </div>
+         <div class="col-md-3 col-lg-2">
+             <label for="id_year" class="form-label">Year</label>
+             <select name="year" id="id_year" class="form-select form-select-sm">
+                 <option value="">All</option>
+                 {% for yr in available_years %}
+                 <option value="{{ yr.id }}" {% if yr.id|stringformat:"s" == selected_year_id %}selected{% endif %}>{{ yr.name }}</option>
+                 {% endfor %}
+             </select>
+        </div>
+        <div class="col-md-2 col-lg-1 d-grid"> {# Use d-grid for button #}
+            <button type="submit" class="btn btn-sm btn-primary"><i class="bi bi-filter"></i> Filter</button>
+        </div>
+         <div class="col-md-2 col-lg-1 d-grid"> {# Reset Button #}
+             <a href="{% url 'managerpanel:list_assignments' %}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-arrow-counterclockwise"></i> Reset</a>
+        </div>
+    </form>
+    {# --- End Filter Form --- #}
+
+
+    {% if assignments_page.object_list %}
+        <div class="table-responsive shadow-sm rounded"> {# Added shadow/rounded #}
+            <table class="table table-striped table-hover table-bordered table-sm align-middle mb-0"> {# Added table-sm, align-middle, mb-0 #}
+                <thead class="table-light text-center"> {# Changed to light header, centered text #}
+                    <tr>
+                        <th>Course Code</th>
+                        <th>Course Name</th>
+                        <th>Batch</th>
+                        <th>Semester</th> {# Added Semester #}
+                        <th>Year</th>     {# Added Year #}
+                        <th>Modality</th>
+                        <th>Days</th> {# Shortened #}
+                        <th>Faculty</th> {# Shortened #}
+                        <th style="width: 1%; white-space: nowrap;">Actions</th> {# Fixed width #}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for assignment in assignments_page %}
+                    <tr>
+                        <td class="text-nowrap">{{ assignment.course.code }}</td>
+                        <td>{{ assignment.course.name }}</td>
+                        <td>
+                            {% if assignment.batch %}
+                                <a href="{% url 'managerpanel:batch_detail' assignment.batch.id %}">{{ assignment.batch.name }}</a>
+                            {% else %}
+                                <span class="text-muted">N/A</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-center">{{ assignment.semester.name|default:"-" }}</td> {# Display Semester #}
+                        <td class="text-center">{{ assignment.year.name|default:"-" }}</td>     {# Display Year #}
+                        <td class="text-center">{{ assignment.get_modality_display }}</td>
+                        <td class="text-nowrap">{{ assignment.get_meeting_days }}</td>
+                        <td>
+                            {% for faculty in assignment.faculty_members.all %}
+                                {{ faculty.get_full_name|default:faculty.username }}{% if not forloop.last %}; {% endif %} {# Use semicolon separator #}
+                            {% empty %}
+                                <span class="text-muted">None</span>
+                            {% endfor %}
+                        </td>
+                        <td class="text-nowrap action-buttons text-center">
+                            {# EDIT BUTTON: Keep as link #}
+                            <a href="{% url 'managerpanel:edit_course_assignment' assignment.id %}" class="btn btn-sm btn-outline-warning me-1" title="Edit Assignment">
+                                <i class="bi bi-pencil-fill"></i>
+                            </a>
+
+                            {# --- DELETE FORM --- #}
+                            <form action="{% url 'managerpanel:delete_course_assignment' assignment.id %}" method="post" class="d-inline" onsubmit="return confirm('Are you sure you want to delete the assignment for course {{ assignment.course.code|escapejs }}? This cannot be undone.');">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-sm btn-outline-danger" title="Delete Assignment">
+                                    <i class="bi bi-trash-fill"></i>
+                                </button>
+                            </form>
+                            {# --- END DELETE FORM --- #}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+         {# --- Pagination --- #}
+         {% if assignments_page.has_other_pages %}
+         <nav aria-label="Course Assignment Pagination" class="mt-4">
+             <ul class="pagination justify-content-center flex-wrap">
+                 {# Construct base URL for pagination links including current filters #}
+                 {% with base_url="?course_q="|add:course_query|urlencode|add:"&faculty_q="|add:faculty_query|urlencode|add:"&batch_q="|add:batch_query|urlencode|add:"&semester="|add:selected_semester_id|urlencode|add:"&year="|add:selected_year_id|urlencode %}
+                     {% if assignments_page.has_previous %}
+                         <li class="page-item"><a class="page-link" href="{{ base_url }}&page=1" aria-label="First Page">««</a></li>
+                         <li class="page-item"><a class="page-link" href="{{ base_url }}&page={{ assignments_page.previous_page_number }}" aria-label="Previous Page">«</a></li>
+                     {% else %}
+                         <li class="page-item disabled"><span class="page-link" aria-hidden="true">««</span></li>
+                         <li class="page-item disabled"><span class="page-link" aria-hidden="true">«</span></li>
+                     {% endif %}
+
+                     {% for num in assignments_page.paginator.page_range %}
+                         {% if assignments_page.number == num %}
+                             <li class="page-item active" aria-current="page"><span class="page-link">{{ num }}</span></li>
+                         {% elif num > assignments_page.number|add:'-3' and num < assignments_page.number|add:'3' %}
+                             <li class="page-item"><a class="page-link" href="{{ base_url }}&page={{ num }}" aria-label="Page {{ num }}">{{ num }}</a></li>
+                         {% elif num == assignments_page.number|add:'-3' or num == assignments_page.number|add:'3' %}
+                             {% if num > 1 and num < assignments_page.paginator.num_pages %}<li class="page-item disabled"><span class="page-link">...</span></li>{% endif %}
+                         {% endif %}
+                     {% endfor %}
+
+                     {% if assignments_page.has_next %}
+                         <li class="page-item"><a class="page-link" href="{{ base_url }}&page={{ assignments_page.next_page_number }}" aria-label="Next Page">»</a></li>
+                         <li class="page-item"><a class="page-link" href="{{ base_url }}&page={{ assignments_page.paginator.num_pages }}" aria-label="Last Page">»»</a></li>
+                     {% else %}
+                         <li class="page-item disabled"><span class="page-link" aria-hidden="true">»</span></li>
+                         <li class="page-item disabled"><span class="page-link" aria-hidden="true">»»</span></li>
+                     {% endif %}
+                 {% endwith %}
+             </ul>
+         </nav>
+         {% endif %}
+         {# --- End Pagination --- #}
+
+    {% else %}
+         {% if course_query or faculty_query or batch_query or selected_semester_id or selected_year_id %}
+              <div class="alert alert-warning mt-3">No assignments found matching your filters. <a href="{% url 'managerpanel:list_assignments' %}" class="alert-link">Reset filters</a>.</div>
+         {% else %}
+              <div class="alert alert-info mt-3">No course assignments found. <a href="{% url 'managerpanel:create_course_assignment' %}" class="alert-link">Assign one now</a>.</div>
+         {% endif %}
+    {% endif %}
+</div>
+
+{# Removed Bootstrap JS load - assume it's in base.html #}
+{% endblock %} {# Close the content block #}

@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ form_title }}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+</head>
+<body>
+    <div class="container mt-4">
+         <h2>{{ form_title }}</h2>
+          {% if batch %}<p class="text-muted">Batch: {{ batch.name }}</p>{% endif %}
+         <hr>
+
+         {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+
+        <form method="post" novalidate>
+             {% csrf_token %}
+
+             {# Render non-field errors #}
+             {% if form.non_field_errors %}
+                <div class="alert alert-danger">
+                    {% for error in form.non_field_errors %} {{ error }} {% endfor %}
+                </div>
+             {% endif %}
+
+            {# Render Batch (potentially hidden/disabled by view) #}
+            {% if form.batch.id_for_label %} {# Check if field exists before rendering #}
+                 <div class="mb-3">
+                    <label for="{{ form.batch.id_for_label }}" class="form-label">{{ form.batch.label }}</label>
+                    {{ form.batch }}
+                    {% if form.batch.help_text %} <small class="form-text text-muted">{{ form.batch.help_text }}</small> {% endif %}
+                    {% for error in form.batch.errors %} <div class="invalid-feedback d-block">{{ error }}</div> {% endfor %}
+                </div>
+            {% endif %}
+
+             {# Render Student ID #}
+             <div class="mb-3">
+                <label for="{{ form.student_id.id_for_label }}" class="form-label">{{ form.student_id.label }}</label>
+                {{ form.student_id }}
+                {% if form.student_id.help_text %} <small class="form-text text-muted">{{ form.student_id.help_text }}</small> {% endif %}
+                {% for error in form.student_id.errors %} <div class="invalid-feedback d-block">{{ error }}</div> {% endfor %}
+            </div>
+
+            {# Render Name Fields (Side-by-side) #}
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="{{ form.first_name.id_for_label }}" class="form-label">{{ form.first_name.label }}</label>
+                    {{ form.first_name }}
+                    {% for error in form.first_name.errors %} <div class="invalid-feedback d-block">{{ error }}</div> {% endfor %}
+                </div>
+                 <div class="col-md-6 mb-3">
+                    <label for="{{ form.last_name.id_for_label }}" class="form-label">{{ form.last_name.label }}</label>
+                    {{ form.last_name }}
+                    {% for error in form.last_name.errors %} <div class="invalid-feedback d-block">{{ error }}</div> {% endfor %}
+                </div>
+            </div>
+
+            {# Render Email #}
+             <div class="mb-3">
+                <label for="{{ form.email.id_for_label }}" class="form-label">{{ form.email.label }}</label>
+                {{ form.email }}
+                {% if form.email.help_text %} <small class="form-text text-muted">{{ form.email.help_text }}</small> {% endif %}
+                {% for error in form.email.errors %} <div class="invalid-feedback d-block">{{ error }}</div> {% endfor %}
+            </div>
+
+            {# Render Phone Number #}
+             <div class="mb-3">
+                <label for="{{ form.phone_number.id_for_label }}" class="form-label">{{ form.phone_number.label }}</label>
+                {{ form.phone_number }}
+                {% if form.phone_number.help_text %} <small class="form-text text-muted">{{ form.phone_number.help_text }}</small> {% endif %}
+                {% for error in form.phone_number.errors %} <div class="invalid-feedback d-block">{{ error }}</div> {% endfor %}
+            </div>
+
+            {# --- Render Degree --- #}
+            <div class="mb-3">
+                <label for="{{ form.degree.id_for_label }}" class="form-label">{{ form.degree.label }}</label>
+                {{ form.degree }}
+                {% if form.degree.help_text %} <small class="form-text text-muted">{{ form.degree.help_text }}</small> {% endif %}
+                {% for error in form.degree.errors %} <div class="invalid-feedback d-block">{{ error }}</div> {% endfor %}
+            </div>
+            {# --- End Degree --- #}
+
+             {# Render Enrollment Semester #}
+             <div class="mb-3">
+                <label for="{{ form.enrollment_semester.id_for_label }}" class="form-label">{{ form.enrollment_semester.label }}</label>
+                {{ form.enrollment_semester }}
+                {% if form.enrollment_semester.help_text %} <small class="form-text text-muted">{{ form.enrollment_semester.help_text }}</small> {% endif %}
+                {% for error in form.enrollment_semester.errors %} <div class="invalid-feedback d-block">{{ error }}</div> {% endfor %}
+            </div>
+
+            {# Render Status #}
+            <div class="mb-3">
+                <label for="{{ form.status.id_for_label }}" class="form-label">{{ form.status.label }}</label>
+                {{ form.status }}
+                {% if form.status.help_text %} <small class="form-text text-muted">{{ form.status.help_text }}</small> {% endif %}
+                {% for error in form.status.errors %} <div class="invalid-feedback d-block">{{ error }}</div> {% endfor %}
+            </div>
+
+             {# Render Notes #}
+             <div class="mb-3">
+                <label for="{{ form.notes.id_for_label }}" class="form-label">{{ form.notes.label }}</label>
+                {{ form.notes }}
+                {% if form.notes.help_text %} <small class="form-text text-muted">{{ form.notes.help_text }}</small> {% endif %}
+                {% for error in form.notes.errors %} <div class="invalid-feedback d-block">{{ error }}</div> {% endfor %}
+            </div>
+
+             <div class="mt-4">
+                 <button type="submit" class="btn btn-success">
+                    <i class="bi bi-check-circle me-1"></i> {% if student %}Update{% else %}Add{% endif %} Student
+                 </button>
+                 {# Determine cancel link based on context #}
+                 {% if batch %}
+                    <a href="{% url 'managerpanel:batch_detail' batch.id %}" class="btn btn-secondary"><i class="bi bi-x-circle me-1"></i> Cancel</a>
+                 {% else %}
+                     <a href="{% url 'managerpanel:search_students' %}" class="btn btn-secondary"><i class="bi bi-x-circle me-1"></i> Cancel</a>
+                 {% endif %}
+            </div>
+        </form>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

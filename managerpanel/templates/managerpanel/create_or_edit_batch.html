@@ -1,0 +1,124 @@
+{% extends 'responseupload/base.html' %} {# Or your managerpanel base template #}
+{% load static %}
+
+{% block title %}{{ form_title }}{% endblock %}
+
+{% block extra_head %}
+  {# Add any page-specific CSS here if needed #}
+  <style>
+    .form-text {
+        font-size: 0.875em; /* Slightly smaller help text */
+    }
+    .invalid-feedback {
+        font-size: 0.875em; /* Match help text size */
+    }
+  </style>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>{{ form_title }}</h2>
+    <hr>
+
+    {# --- DISPLAY MESSAGES (like validation errors or success messages) --- #}
+     {% if messages %}
+         {% for message in messages %}
+         <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+             {{ message }}
+             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+         </div>
+         {% endfor %}
+     {% endif %}
+    {# --- End Message Display --- #}
+
+    <form method="post" novalidate> {# Use POST method, disable default browser validation #}
+        {% csrf_token %} {# Security token required by Django #}
+
+        {# --- DISPLAY NON-FIELD ERRORS (e.g., uniqueness constraints) --- #}
+        {% if form.non_field_errors %}
+            <div class="alert alert-danger">
+                {% for error in form.non_field_errors %}
+                    <p class="mb-0">{{ error }}</p>
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        {# --- Render Fields with Individual Errors --- #}
+
+        {# Batch Name #}
+        <div class="mb-3">
+            <label for="{{ form.name.id_for_label }}" class="form-label">{{ form.name.label }}</label>
+            {{ form.name }} {# Renders input with form-control class from forms.py #}
+            {% if form.name.help_text %}<div class="form-text text-muted">{{ form.name.help_text }}</div>{% endif %}
+            {% for error in form.name.errors %}
+                <div class="invalid-feedback d-block">{{ error }}</div> {# Display field-specific errors #}
+            {% endfor %}
+        </div>
+
+        {# Program Selection #}
+        <div class="mb-3">
+            <label for="{{ form.program.id_for_label }}" class="form-label">{{ form.program.label }}</label>
+            {{ form.program }} {# Renders select with form-select class #}
+            {% if form.program.help_text %}<div class="form-text text-muted">{{ form.program.help_text }}</div>{% endif %}
+            {% for error in form.program.errors %}
+                <div class="invalid-feedback d-block">{{ error }}</div>
+            {% endfor %}
+        </div>
+
+         {# Cohort Selection #}
+         <div class="mb-3">
+            <label for="{{ form.cohort.id_for_label }}" class="form-label">{{ form.cohort.label }}</label>
+            {{ form.cohort }} {# Renders select with form-select class #}
+            {% if form.cohort.help_text %}<div class="form-text text-muted">{{ form.cohort.help_text }}</div>{% endif %}
+            {% for error in form.cohort.errors %}
+                <div class="invalid-feedback d-block">{{ error }}</div>
+            {% endfor %}
+        </div>
+
+        {# Year #}
+        <div class="mb-3">
+            <label for="{{ form.year.id_for_label }}" class="form-label">{{ form.year.label }}</label>
+            {{ form.year }} {# Renders input with form-control class #}
+            {% if form.year.help_text %}<div class="form-text text-muted">{{ form.year.help_text }}</div>{% endif %}
+            {% for error in form.year.errors %}
+                <div class="invalid-feedback d-block">{{ error }}</div>
+            {% endfor %}
+        </div>
+
+        {# Semester #}
+        <div class="mb-3">
+            <label for="{{ form.semester.id_for_label }}" class="form-label">{{ form.semester.label }}</label>
+            {{ form.semester }} {# Renders select with form-select class #}
+            {% if form.semester.help_text %}<div class="form-text text-muted">{{ form.semester.help_text }}</div>{% endif %}
+            {% for error in form.semester.errors %}
+                <div class="invalid-feedback d-block">{{ error }}</div>
+            {% endfor %}
+        </div>
+
+        {# Batch Status #}
+        <div class="mb-3">
+            <label for="{{ form.status.id_for_label }}" class="form-label">{{ form.status.label }}</label>
+            {{ form.status }} {# Renders select with form-select class #}
+            {% if form.status.help_text %}<div class="form-text text-muted">{{ form.status.help_text }}</div>{% endif %}
+            {% for error in form.status.errors %}
+                <div class="invalid-feedback d-block">{{ error }}</div>
+            {% endfor %}
+        </div>
+
+        {# --- Action Buttons --- #}
+        <div class="mt-4">
+            <button type="submit" class="btn btn-primary"> {# Changed to primary button style #}
+                <i class="bi bi-check-circle me-1"></i> {% if batch %}Update Batch{% else %}Create Batch{% endif %} {# Dynamically change button text #}
+            </button>
+            <a href="{% url 'managerpanel:list_batches' %}" class="btn btn-secondary">
+               <i class="bi bi-x-circle me-1"></i> Cancel
+            </a>
+        </div>
+    </form> {# End Form #}
+</div> {# End Container #}
+{% endblock %}
+
+{% block extra_js %}
+  {# No specific JS needed for this basic form #}
+  {# Bootstrap JS should be included in the base template #}
+{% endblock %}

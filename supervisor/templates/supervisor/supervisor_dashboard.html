@@ -1,0 +1,311 @@
+{% extends 'responseupload/base.html' %}
+
+{% block title %}Supervisor Dashboard - Faculty Evaluation System{% endblock %}
+
+{% block extra_css %}
+<style>
+    .supervisor-header {
+        margin-bottom: 30px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 15px;
+    }
+    .filter-section {
+        margin-bottom: 20px;
+        display: flex;
+        gap: 15px;
+        flex-wrap: wrap;
+        align-items: flex-end;
+    }
+    .filter-group {
+        flex: 1;
+        min-width: 180px;
+        max-width: 220px;
+    }
+    .filter-label {
+        font-size: 0.85rem;
+        margin-bottom: 5px;
+        color: #333;
+    }
+    .filter-input, .filter-select {
+        width: 100%;
+        height: 38px;
+        font-size: 0.9rem;
+        transition: border-color 0.3s ease, box-shadow 0.3s ease;
+    }
+    .filter-input:focus, .filter-select:focus {
+        border-color: #0d6efd;
+        box-shadow: 0 0 5px rgba(13, 110, 253, 0.3);
+    }
+    .filter-input:not(:placeholder-shown), .filter-select:not(:invalid) {
+        border-color: #0d6efd;
+    }
+    .reset-btn {
+        height: 38px;
+        padding: 0 20px;
+        font-size: 0.9rem;
+    }
+    .card {
+        border: none;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        margin-bottom: 20px;
+    }
+    .card:hover {
+        transform: scale(1.05);
+        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+    }
+    .card-header {
+        background-color: #0d6efd;
+        color: white;
+        font-weight: bold;
+        text-align: center;
+        cursor: pointer;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px 15px;
+        transition: background-color 0.3s ease;
+    }
+    .card-header:hover {
+        background-color: #0b5ed7;
+    }
+    .card-header .toggle-icon {
+        transition: transform 0.3s ease;
+    }
+    .card-header .toggle-icon.collapsed {
+        transform: rotate(-90deg);
+    }
+    .card-body {
+        padding: 15px;
+        background: #f9f9f9;
+    }
+    .card-title {
+        font-size: 1.1rem;
+        margin-bottom: 10px;
+    }
+    .card-text {
+        font-size: 0.9rem;
+        color: #555;
+        line-height: 1.4;
+        margin-bottom: 8px;
+    }
+    .btn-view-courses {
+        width: 100%;
+        padding: 8px;
+        font-size: 0.9rem;
+    }
+    .no-users {
+        text-align: center;
+        color: gray;
+        font-style: italic;
+        padding: 20px;
+    }
+    .filter-results {
+        font-size: 0.9rem;
+        color: #555;
+        margin-top: 10px;
+        width: 100%;
+    }
+    .filter-hint {
+        font-size: 0.85rem;
+        color: #777;
+        margin-top: 5px;
+        display: none;
+    }
+    .filter-hint.active {
+        display: block;
+    }
+    @media (max-width: 992px) {
+        .filter-group {
+            min-width: 45%;
+        }
+    }
+    @media (max-width: 576px) {
+        .filter-group, .reset-btn {
+            min-width: 100%;
+        }
+        .reset-btn {
+            margin-top: 10px;
+        }
+        .supervisor-header {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <!-- Header -->
+    <div class="supervisor-header">
+        <h1 class="fw-bold">Supervisor Dashboard</h1>
+        <p class="text-muted mb-0">Total Users: <span id="total-users">{{ users|length }}</span></p>
+    </div>
+
+    <!-- Filter Section -->
+    <div class="filter-section" id="filter-section" aria-label="User filter controls">
+        <div class="filter-group">
+            <label for="filter-name" class="filter-label">Full Name</label>
+            <input type="text" id="filter-name" class="form-control filter-input" placeholder="Enter full name" aria-describedby="filter-name-help" data-bs-toggle="tooltip" title="Enter partial or full name">
+            <small id="filter-name-help" class="form-text text-muted visually-hidden">Search by full name</small>
+        </div>
+        <div class="filter-group">
+            <label for="filter-username" class="filter-label">Username</label>
+            <input type="text" id="filter-username" class="form-control filter-input" placeholder="Enter username" aria-describedby="filter-username-help" data-bs-toggle="tooltip" title="Enter partial or full username">
+            <small id="filter-username-help" class="form-text text-muted visually-hidden">Search by username</small>
+        </div>
+        <div class="filter-group">
+            <label for="filter-role" class="filter-label">Role</label>
+            <select id="filter-role" class="form-select filter-select" aria-describedby="filter-role-help" data-bs-toggle="tooltip" title="Select user role">
+                <option value="" selected>All Roles</option>
+                <option value="FACULTY">Faculty</option>
+                <option value="SUPERVISOR">Supervisor</option>
+            </select>
+            <small id="filter-role-help" class="form-text text-muted visually-hidden">Filter by user role</small>
+        </div>
+        <button type="button" id="reset-filters" class="btn btn-outline-secondary reset-btn" data-bs-toggle="tooltip" title="Clear all filters">Reset Filters</button>
+        <div class="filter-results" id="filter-results" aria-live="polite"></div>
+        <div class="filter-hint" id="filter-hint">Use the filters above to search users by name, username, or role.</div>
+    </div>
+
+    <!-- Users Section -->
+    <div class="card" id="users-card">
+        <div class="card-header" data-bs-toggle="collapse" data-bs-target="#users-list" aria-expanded="true" aria-controls="users-list">
+            User List
+            <i class="bi bi-chevron-down toggle-icon"></i>
+        </div>
+        <div class="collapse show" id="users-list" aria-label="Supervised users">
+            <div class="row p-3">
+                {% for user in users %}
+                    <div class="col-md-4 col-sm-6 mb-4 user-card" 
+                         data-name="{{ user.get_full_name|lower }}" 
+                         data-username="{{ user.username|lower }}" 
+                         data-role="{% if user.supervisor %}SUPERVISOR{% else %}FACULTY{% endif %}">
+                        <div class="card shadow-sm border-0">
+                            <div class="card-body">
+                                <h5 class="card-title fw-bold text-primary">
+                                    <i class="bi bi-person"></i> {{ user.get_full_name }}
+                                </h5>
+                                <p class="card-text">
+                                    <strong>Username:</strong> {{ user.username }}<br>
+                                    <strong>Email:</strong> {{ user.email|default:"Not provided" }}<br>
+                                    <strong>Role:</strong> {% if user.supervisor %}Supervisor{% else %}Faculty{% endif %}
+                                </p>
+                                <a href="{% url 'supervisor:user_courses' user.id %}" class="btn btn-primary btn-view-courses">View Courses</a>
+                            </div>
+                        </div>
+                    </div>
+                {% empty %}
+                    <div class="col-12">
+                        <p class="no-users">No users found.</p>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Debounce function for input events
+    const debounce = (func, delay) => {
+        let timeoutId;
+        return (...args) => {
+            clearTimeout(timeoutId);
+            timeoutId = setTimeout(() => func.apply(null, args), delay);
+        };
+    };
+
+    // DOM elements
+    const filters = {
+        name: document.getElementById('filter-name'),
+        username: document.getElementById('filter-username'),
+        role: document.getElementById('filter-role')
+    };
+    const resetButton = document.getElementById('reset-filters');
+    const filterResults = document.getElementById('filter-results');
+    const filterHint = document.getElementById('filter-hint');
+    const usersList = document.getElementById('users-list');
+    const totalUsers = document.getElementById('total-users');
+
+    // Filter users
+    const filterUsers = () => {
+        const userCards = usersList.querySelectorAll('.user-card');
+        const noUsers = usersList.querySelector('.no-users');
+        let visibleCount = 0;
+
+        userCards.forEach(card => {
+            const name = card.dataset.name;
+            const username = card.dataset.username;
+            const role = card.dataset.role;
+
+            const matchesName = filters.name.value.trim() === '' || name.includes(filters.name.value.toLowerCase().trim());
+            const matchesUsername = filters.username.value.trim() === '' || username.includes(filters.username.value.toLowerCase().trim());
+            const matchesRole = filters.role.value === '' || role === filters.role.value;
+
+            if (matchesName && matchesUsername && matchesRole) {
+                card.style.opacity = '0';
+                card.style.display = '';
+                setTimeout(() => { card.style.opacity = '1'; }, 10);
+                visibleCount++;
+            } else {
+                card.style.display = 'none';
+            }
+        });
+
+        noUsers.style.display = visibleCount === 0 ? '' : 'none';
+        filterResults.textContent = visibleCount === 0 
+            ? 'No users match the current filters.' 
+            : `Showing ${visibleCount} of ${users_length} users`;
+        filterHint.classList.toggle('active', visibleCount === users_length);
+        totalUsers.textContent = users_length;
+    };
+
+    // Reset filters
+    const resetFilters = () => {
+        Object.values(filters).forEach(filter => filter.value = '');
+        filterUsers();
+    };
+
+    // Persist collapse state
+    const persistCollapseState = () => {
+        const isCollapsed = !usersList.classList.contains('show');
+        localStorage.setItem('#users-list', isCollapsed ? 'collapsed' : 'expanded');
+        const icon = document.querySelector('.card-header .toggle-icon');
+        icon.classList.toggle('collapsed', isCollapsed);
+    };
+
+    // Restore collapse state
+    const restoreCollapseState = () => {
+        const state = localStorage.getItem('#users-list');
+        if (state === 'collapsed') {
+            usersList.classList.remove('show');
+            document.querySelector('.card-header .toggle-icon').classList.add('collapsed');
+        }
+    };
+
+    // Event listeners
+    filters.name.addEventListener('input', debounce(filterUsers, 300));
+    filters.username.addEventListener('input', debounce(filterUsers, 300));
+    filters.role.addEventListener('change', filterUsers);
+    resetButton.addEventListener('click', resetFilters);
+    document.querySelector('.card-header').addEventListener('click', persistCollapseState);
+
+    // Initialize tooltips
+    document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(element => {
+        new bootstrap.Tooltip(element);
+    });
+
+    // Restore collapse state and apply filters on load
+    restoreCollapseState();
+    filterUsers();
+
+    // Pass users count to JavaScript
+    const users_length = {{ users|length }};
+</script>
+{% endblock %}

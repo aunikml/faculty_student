@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Faculty Responses</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+</head>
+<body>
+    <div class="container">
+    <h2>Faculty Responses</h2>
+    
+    {% if responses %}
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Timestamp</th>
+                    <th>Course Code</th>
+                    <th>Course Name</th>
+                    <th>Semester</th>
+                    <th>Teachers</th>
+                    <th>Q1</th>
+                    <th>Q2</th>
+                    <th>Q3</th>
+                    <th>Q4</th>
+                    <th>Q5</th>
+                    <th>Q6</th>
+                    <th>Q7</th>
+                    <th>Q8</th>
+                    <th>Comments</th>
+                </tr>
+            </thead>
+             <tbody>
+                {% for response in responses %}
+                <tr>
+                    <td>{{ response.timestamp }}</td>
+                    <td>{{ response.course.code }}</td>
+                    <td>{{ response.course.name }}</td>
+                    <td>{{ response.semester }}</td>
+                    <td>
+                       {{ response.faculty.first_name }} {{ response.faculty.last_name }}
+                    </td>
+                    <td>{{ response.q1 }}</td>
+                    <td>{{ response.q2 }}</td>
+                    <td>{{ response.q3 }}</td>
+                    <td>{{ response.q4 }}</td>
+                    <td>{{ response.q5 }}</td>
+                    <td>{{ response.q6 }}</td>
+                    <td>{{ response.q7 }}</td>
+                    <td>{{ response.q8 }}</td>
+                    <td>{{ response.general_comments }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p>No faculty responses found.</p>
+    {% endif %}
+    </div>
+    
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.3/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+</body>
+</html>

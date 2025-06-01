@@ -1,0 +1,136 @@
+{% extends 'responseupload/base.html' %}
+
+{% block title %}Manager Dashboard{% endblock %}
+
+{% block extra_css %}
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+        .action-buttons .btn {
+            margin-right: 5px;
+            margin-bottom: 5px;
+        }
+        .search-form-section {
+            background-color: #ffffff;
+            border: 1px solid #dee2e6;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+        }
+        .search-form-section h4 {
+            margin-bottom: 15px;
+            color: #495057;
+        }
+        .welcome-message {
+            text-align: center;
+            margin-bottom: 2rem;
+            color: #212529;
+            font-weight: 500;
+        }
+        .table th {
+            white-space: nowrap;
+        }
+        .table td {
+            vertical-align: middle;
+        }
+        .table .action-buttons {
+            min-width: 100px;
+            text-align: center;
+        }
+        .footer-links {
+            text-align: center;
+            padding: 1.5rem 0;
+            border-top: 1px solid #dee2e6;
+            margin-top: 2rem;
+        }
+        .dashboard-section {
+            margin-bottom: 2rem;
+        }
+        /* Specific style for the View All Assignments button */
+        .view-assignments-btn {
+            /* Keeping as btn btn-outline-primary for visibility */
+        }
+    </style>
+{% endblock %}
+
+{% block content %}
+    <div class="welcome-message">
+        <h2>Manager Dashboard</h2>
+        <p class="lead">Welcome, {{ request.user.get_full_name|default:request.user.username }}!</p>
+    </div>
+
+    {# --- Top Action Buttons & Search --- #}
+    <div class="mb-4 d-flex justify-content-between align-items-center flex-wrap gap-2">
+        {# Group 1: Assignment & Component Creation #}
+        <div class="btn-group" role="group" aria-label="Assignment Actions">
+            <a href="{% url 'managerpanel:list_assignments' %}" class="btn btn-outline-primary view-assignments-btn">
+                <i class="bi bi-card-list me-1"></i> View Assignments
+            </a>
+        </div>
+
+        {# Group 2: Component Creation Dropdown #}
+        <div class="btn-group" role="group">
+            <button class="btn btn-secondary dropdown-toggle" type="button" id="createComponentDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                <i class="bi bi-gear-fill me-1"></i> Create Component
+            </button>
+            <ul class="dropdown-menu" aria-labelledby="createComponentDropdown">
+                <li><a class="dropdown-item" href="{% url 'managerpanel:create_program_manager' %}">Program</a></li>
+                <li><a class="dropdown-item" href="{% url 'managerpanel:create_semester_manager' %}">Semester</a></li>
+                <li><a class="dropdown-item" href="{% url 'managerpanel:create_year_manager' %}">Year</a></li>
+                <li><hr class="dropdown-divider"></li>
+                <li><a class="dropdown-item" href="{% url 'managerpanel:create_course_manager' %}">Course</a></li>
+            </ul>
+        </div>
+
+        {# Group 3: Batch & Student Management #}
+        <div class="btn-group" role="group" aria-label="Batch and Student Actions">
+            <a href="{% url 'managerpanel:list_batches' %}" class="btn btn-info">
+                <i class="bi bi-layers-fill me-1"></i> Manage Batches
+            </a>
+            <a href="{% url 'managerpanel:upload_students_csv' %}" class="btn btn-success">
+                <i class="bi bi-file-earmark-arrow-up me-1"></i> Upload Students
+            </a>
+            <a href="{% url 'managerpanel:search_students' %}" class="btn btn-warning">
+                <i class="bi bi-people-fill me-1"></i> View/Search Students
+            </a>
+        </div>
+
+        {# Group 4: Logout #}
+        <div class="ms-auto">
+            <a href="{% url 'responseupload:logout' %}" class="btn btn-outline-danger">
+                <i class="bi bi-box-arrow-right me-1"></i> Logout
+            </a>
+        </div>
+    </div>
+    {# --- End Action Buttons --- #}
+
+    {# --- Student Search Form Section --- #}
+    <div class="search-form-section dashboard-section">
+        <h4><i class="bi bi-search"></i> Quick Student Search</h4>
+        <form action="{% url 'managerpanel:search_students' %}" method="get" class="row g-3 align-items-end">
+            <div class="col-md-5 col-lg-6">
+                <label for="id_query" class="form-label visually-hidden">{{ student_search_form.query.label }}</label>
+                {{ student_search_form.query }}
+            </div>
+            <div class="col-md-4 col-lg-3">
+                <label for="{{ student_search_form.status.id_for_label }}" class="form-label visually-hidden">{{ student_search_form.status.label }}</label>
+                {{ student_search_form.status }}
+            </div>
+            <div class="col-md-3 col-lg-3">
+                <div class="d-grid">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-funnel-fill me-1"></i> Search Students
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+    {# --- End Student Search Form --- #}
+
+    {# Footer Links #}
+    <div class="footer-links mt-5">
+        {# Add other relevant footer links if needed #}
+    </div>
+{% endblock %}

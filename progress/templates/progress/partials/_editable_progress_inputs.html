@@ -1,0 +1,25 @@
+{% comment %} progress/templates/progress/partials/_editable_progress_inputs.html {% endcomment %}
+<div class="course-checklist mb-2" id="course-checklist-ajax-{{ student.id }}">
+    {# This content will be replaced by AJAX-loaded checkboxes #}
+    {# Or, if not using AJAX immediately for loading, you can render them here: #}
+    {% if program_courses %}
+        {% for course in program_courses %}
+            <div class="form-check form-check-sm">
+                <input class="form-check-input"
+                       type="checkbox"
+                       name="completed_courses" {# This name is used by the update_student_progress view #}
+                       value="{{ course.id }}"
+                       id="course-edit-{{ student.id }}-{{ course.id }}"
+                       {% if course.id in completed_course_ids %}checked{% endif %}
+                       {# JS will enable/disable these based on edit mode #}
+                       disabled
+                       data-initial-checked="{% if course.id in completed_course_ids %}true{% else %}false{% endif %}">
+                <label class="form-check-label" for="course-edit-{{ student.id }}-{{ course.id }}">
+                    {{ course.code }} - {{ course.name }}
+                </label>
+            </div>
+        {% endfor %}
+    {% else %}
+        <p class="text-muted">No courses defined for this student's program.</p>
+    {% endif %}
+</div>

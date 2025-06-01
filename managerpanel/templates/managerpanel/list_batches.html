@@ -1,0 +1,232 @@
+{% extends 'responseupload/base.html' %} {# Or your actual base template #}
+{% load static %}
+
+{% block title %}Manage Batches{% endblock title %}
+
+{% block extra_head %}
+<style>
+    .table th { white-space: nowrap; vertical-align: middle; background-color: #f8f9fa; text-align: center; font-weight: 600; }
+    .table td { vertical-align: middle; }
+    .table-hover tbody tr:hover { background-color: #f1f3f5; }
+    .table a { text-decoration: none; } .table a:hover { text-decoration: underline; }
+    .badge-status { font-size: 0.75rem; padding: 0.3em 0.6em; border-radius: 0.25rem; font-weight: 500; white-space: nowrap; }
+    .actions-col { width: auto; white-space: nowrap; text-align: center;} /* Adjusted width for actions */
+    .status-col { width: 120px; text-align: center;} /* Specific width for status column */
+    .status-form-select {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.8rem;
+        line-height: 1.5;
+        border-radius: 0.2rem;
+        width: auto; /* Allow it to size based on content */
+        min-width: 100px; /* Minimum width */
+        display: inline-block; /* For side-by-side button */
+        vertical-align: middle;
+    }
+    .status-update-btn {
+        font-size: 0.8rem;
+        padding: 0.25rem 0.5rem;
+        line-height: 1.5;
+        margin-left: 0.25rem;
+        vertical-align: middle;
+    }
+</style>
+{% endblock extra_head %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2>Manage Batches</h2>
+        <a href="{% url 'managerpanel:create_batch' %}" class="btn btn-primary">
+            <i class="bi bi-plus-circle-fill me-1"></i> Create New Batch
+        </a>
+    </div>
+
+    {% include 'managerpanel/partials/_messages.html' %} {# Ensure this partial exists #}
+
+    {% if batches_page.object_list %}
+        <div class="table-responsive shadow-sm rounded">
+            <table class="table table-striped table-hover table-bordered table-sm mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Batch Name</th>
+                        <th>Program</th>
+                        <th>Cohort</th>
+                        <th class="status-col">Status</th>
+                        <th>Year</th>
+                        <th>Semester</th>
+                        <th>Students</th>
+                        <th>Created At</th>
+                        <th class="actions-col">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for batch in batches_page %}
+                    <tr id="batch-row-{{ batch.id }}">
+                        <td>
+                            <a href="{% url 'managerpanel:batch_detail' batch.id %}" data-bs-toggle="tooltip" title="View Details for {{ batch.name }}">
+                                {{ batch.name }}
+                            </a>
+                        </td>
+                        <td>{{ batch.program.code|default:"N/A" }}</td>
+                        <td>{{ batch.cohort.name|default:"N/A" }}</td>
+                        <td class="status-col">
+                            <form action="{% url 'managerpanel:update_batch_status' batch.id %}" method="post" class="update-status-form d-inline-flex align-items-center" data-batch-id="{{ batch.id }}">
+                                {% csrf_token %}
+                                <select name="status" class="form-select form-select-sm status-form-select" aria-label="Batch status for {{ batch.name }}">
+                                    {% for value, display_text in batch.BATCH_STATUS_CHOICES %}
+                                        <option value="{{ value }}" {% if batch.status == value %}selected{% endif %}>
+                                            {{ display_text }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                                <button type="submit" class="btn btn-sm btn-outline-primary status-update-btn" data-bs-toggle="tooltip" title="Update status for {{ batch.name }}">
+                                    <i class="bi bi-check-lg"></i>
+                                </button>
+                            </form>
+                            {# Placeholder for displaying current status if not using inline form #}
+                            {# <span id="status-display-{{ batch.id }}" class="badge badge-status {% if batch.status == batch.STATUS_ONGOING %}bg-success{% else %}bg-secondary{% endif %}">{{ batch.get_status_display }}</span> #}
+                        </td>
+                        <td>{{ batch.year }}</td>
+                        <td>{{ batch.semester.name|default:"-" }}</td>
+                        <td class="text-center">{{ batch.student_count|default:0 }}</td>
+                        <td>{{ batch.created_at|date:"M d, Y" }}</td>
+                        <td class="actions-col">
+                            <a href="{% url 'managerpanel:batch_detail' batch.id %}" class="btn btn-sm btn-outline-info me-1" data-bs-toggle="tooltip" title="View Details"><i class="bi bi-eye-fill"></i></a>
+                            <a href="{% url 'managerpanel:edit_batch' batch.id %}" class="btn btn-sm btn-outline-warning me-1" data-bs-toggle="tooltip" title="Edit Batch"><i class="bi bi-pencil-fill"></i></a>
+                            <a href="#" onclick="confirmDelete('delete-batch-form-{{ batch.id }}', '{{ batch.name|escapejs }}'); return false;" class="btn btn-sm btn-outline-danger" data-bs-toggle="tooltip" title="Delete Batch"><i class="bi bi-trash-fill"></i></a>
+                            <form id="delete-batch-form-{{ batch.id }}" action="{% url 'managerpanel:delete_batch' batch.id %}" method="post" style="display: none;">
+                                {% csrf_token %}
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        {# Pagination #}
+        {% if batches_page.has_other_pages %}
+        <nav aria-label="Batch list pagination" class="mt-4">
+            <ul class="pagination justify-content-center">
+                {% if batches_page.has_previous %}
+                    <li class="page-item"><a class="page-link" href="?page=1">««</a></li>
+                    <li class="page-item"><a class="page-link" href="?page={{ batches_page.previous_page_number }}">«</a></li>
+                {% else %}
+                    <li class="page-item disabled"><span class="page-link">««</span></li>
+                    <li class="page-item disabled"><span class="page-link">«</span></li>
+                {% endif %}
+
+                {% for num in batches_page.paginator.page_range %}
+                    {% if batches_page.number == num %}
+                        <li class="page-item active" aria-current="page"><span class="page-link">{{ num }}</span></li>
+                    {% elif num > batches_page.number|add:'-3' and num < batches_page.number|add:'3' %}
+                        <li class="page-item"><a class="page-link" href="?page={{ num }}">{{ num }}</a></li>
+                     {% elif num == batches_page.number|add:'-3' or num == batches_page.number|add:'3' %}
+                        {% if num > 1 and num < batches_page.paginator.num_pages %} <li class="page-item disabled"><span class="page-link">...</span></li> {% endif %}
+                    {% endif %}
+                {% endfor %}
+
+                {% if batches_page.has_next %}
+                    <li class="page-item"><a class="page-link" href="?page={{ batches_page.next_page_number }}">»</a></li>
+                    <li class="page-item"><a class="page-link" href="?page={{ batches_page.paginator.num_pages }}">»»</a></li>
+                {% else %}
+                    <li class="page-item disabled"><span class="page-link">»</span></li>
+                    <li class="page-item disabled"><span class="page-link">»»</span></li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+
+    {% else %}
+        <div class="alert alert-info mt-3">
+            No batches have been created yet.
+            <a href="{% url 'managerpanel:create_batch' %}" class="alert-link">Create the first batch now.</a>
+        </div>
+    {% endif %}
+
+    <div class="mt-4 mb-4">
+        <a href="{% url 'managerpanel:manager_dashboard' %}" class="btn btn-secondary btn-sm">
+            <i class="bi bi-arrow-left-circle me-1"></i> Back to Manager Dashboard
+        </a>
+    </div>
+</div>
+{% endblock content %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        // Initialize Bootstrap Tooltips
+        const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+        tooltipTriggerList.forEach(tooltipTriggerEl => {
+            new bootstrap.Tooltip(tooltipTriggerEl);
+        });
+
+        // Handle batch status update forms (AJAX for better UX)
+        const statusForms = document.querySelectorAll('.update-status-form');
+        statusForms.forEach(form => {
+            form.addEventListener('submit', function (event) {
+                event.preventDefault(); // Prevent default form submission
+                const batchId = this.dataset.batchId;
+                const formData = new FormData(this);
+                const statusSelect = this.querySelector('select[name="status"]');
+                const submitButton = this.querySelector('button[type="submit"]');
+                const originalButtonHtml = submitButton.innerHTML;
+
+                submitButton.disabled = true;
+                submitButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>';
+
+                fetch(this.action, {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-CSRFToken': formData.get('csrfmiddlewaretoken'), // Ensure CSRF token is sent
+                        'X-Requested-With': 'XMLHttpRequest' // Important for view to know it's AJAX
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Optionally update a status display badge if you have one separate from the form
+                        // For now, the select itself reflects the new state after a successful save.
+                        // You could add a visual confirmation like a temporary "Saved!" message.
+                        // Example:
+                        // const statusDisplay = document.getElementById(`status-display-${batchId}`);
+                        // if (statusDisplay) {
+                        //     statusDisplay.textContent = data.new_status_display;
+                        //     statusDisplay.className = `badge badge-status ${data.new_status_value === 'ongoing' ? 'bg-success' : 'bg-secondary'}`;
+                        // }
+                        // Provide feedback (e.g., using a toast notification or simple alert)
+                        // For simplicity, we're relying on messages framework for non-AJAX,
+                        // but for AJAX, a JS notification is better.
+                        console.log(data.message); // Log success
+                        // statusSelect.value = data.new_status_value; // Ensure select reflects saved value
+                    } else {
+                        alert('Error updating status: ' + (data.error || 'Unknown error.'));
+                    }
+                })
+                .catch(error => {
+                    console.error('Error updating batch status:', error);
+                    alert('An error occurred while updating status.');
+                })
+                .finally(() => {
+                    submitButton.disabled = false;
+                    submitButton.innerHTML = originalButtonHtml;
+                });
+            });
+        });
+    });
+
+    // Basic Delete Confirmation
+    function confirmDelete(formId, batchName) {
+        if (confirm(`Are you sure you want to delete the batch "${batchName}"? This action will also delete all associated students and cannot be undone.`)) {
+            const form = document.getElementById(formId);
+            if (form) {
+                form.submit();
+            } else {
+                console.error('Delete form not found:', formId);
+                alert('Error: Delete form not found.');
+            }
+        }
+    }
+</script>
+{% endblock extra_js %}

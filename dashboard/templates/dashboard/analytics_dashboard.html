@@ -1,0 +1,242 @@
+{% extends "responseupload/base.html" %}
+{% load static %}
+
+{% block title %}Analytics Dashboard{% endblock %}
+
+{% block extra_head %}
+<style>
+    .chart-container {
+        position: relative;
+        margin: auto;
+        height: 350px; /* Adjust height as needed */
+        width: 100%;
+        margin-bottom: 2rem;
+    }
+    .dashboard-card {
+        margin-bottom: 1.5rem;
+    }
+    .dashboard-card .card-header {
+        background-color: #6c757d; /* Grey header */
+        color: white;
+        font-weight: 500;
+    }
+    .program-col {
+        padding-left: 5px;
+        padding-right: 5px;
+    }
+    .batch-list {
+        font-size: 0.9rem;
+        list-style: none;
+        padding-left: 0;
+    }
+    .batch-list li {
+        padding: 0.25rem 0;
+        border-bottom: 1px solid #eee;
+    }
+     .batch-list li:last-child {
+        border-bottom: none;
+    }
+     .batch-status-ongoing { color: #198754; font-weight: bold; }
+     .batch-status-graduated { color: #6c757d; }
+     .card-columns-container {
+         display: flex;
+         flex-wrap: wrap;
+         margin-left: -5px;
+         margin-right: -5px;
+     }
+</style>
+{% endblock %}
+
+
+{% block content %}
+<div class="container-fluid mt-4"> {# Use fluid for wider content #}
+    <h2 class="mb-4">Manager Analytics Dashboard</h2>
+
+    <!-- Totals Row -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card text-center dashboard-card">
+                <div class="card-header">Total Students</div>
+                <div class="card-body">
+                    <h3 class="card-title">{{ total_student_count }}</h3>
+                </div>
+            </div>
+        </div>
+        {# Add more summary cards here if needed #}
+    </div>
+
+    <!-- Charts Row -->
+    <div class="row">
+        <!-- Total Students Chart -->
+        <div class="col-lg-6">
+             <div class="card dashboard-card">
+                 <div class="card-header">Total Students Trend (by Batch Year)</div>
+                 <div class="card-body">
+                     <div class="chart-container">
+                        <canvas id="totalStudentsChart"></canvas>
+                     </div>
+                 </div>
+             </div>
+        </div>
+        <!-- Students per Program Chart -->
+         <div class="col-lg-6">
+             <div class="card dashboard-card">
+                 <div class="card-header">Students per Program Trend (by Batch Year)</div>
+                 <div class="card-body">
+                     <div class="chart-container">
+                        <canvas id="studentsPerProgramChart"></canvas>
+                    </div>
+                 </div>
+             </div>
+        </div>
+    </div>
+
+    <!-- On-Going Batches per Program -->
+    <div class="card dashboard-card">
+        <div class="card-header">On-Going Batches by Program</div>
+        <div class="card-body">
+            {% if ongoing_batches_by_program %}
+                <div class="row card-columns-container">
+                    {% for program_name, batches in ongoing_batches_by_program.items %}
+                        <div class="col-md-6 col-lg-4 program-col mb-3">
+                            <h5 class="text-muted">{{ program_name }}</h5>
+                            <ul class="batch-list">
+                                {% for batch in batches %}
+                                <li>
+                                    <a href="{% url 'managerpanel:batch_detail' batch.id %}">{{ batch.name }}</a>
+                                    ({{ batch.year }} / {{ batch.cohort.name }})
+                                </li>
+                                {% empty %}
+                                <li><small class="text-muted">No on-going batches.</small></li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p class="text-muted">No programs found with on-going batches.</p>
+            {% endif %}
+        </div>
+    </div>
+
+     <!-- All Batches per Cohort -->
+    <div class="card dashboard-card">
+        <div class="card-header">Batches by Cohort</div>
+        <div class="card-body">
+             {% if batches_by_cohort %}
+                <div class="row card-columns-container">
+                    {% for cohort_name, batches in batches_by_cohort.items %}
+                        <div class="col-md-6 col-lg-4 program-col mb-3">
+                            <h5 class="text-muted">{{ cohort_name }}</h5>
+                             <ul class="batch-list">
+                                {% for batch in batches %}
+                                <li>
+                                    <a href="{% url 'managerpanel:batch_detail' batch.id %}">{{ batch.name }}</a>
+                                    ({{ batch.year }} / {{ batch.program.code }})
+                                    - <span class="batch-status-{{ batch.status }}">
+                                        {{ batch.get_status_display }}
+                                      </span>
+                                </li>
+                                {% empty %}
+                                 <li><small class="text-muted">No batches found for this cohort.</small></li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p class="text-muted">No cohorts or batches found.</p>
+            {% endif %}
+        </div>
+    </div>
+
+</div> {# End Container #}
+
+{# Pass chart data to JavaScript #}
+{{ chart_data_json|json_script:"chartData" }}
+
+{% endblock %}
+
+
+{% block extra_js %}
+<!-- Include Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const chartDataElement = document.getElementById('chartData');
+        if (!chartDataElement) {
+            console.error("Chart data element not found!");
+            return;
+        }
+        const rawChartData = JSON.parse(chartDataElement.textContent);
+
+        // --- Initialize Total Students Chart ---
+        const totalCtx = document.getElementById('totalStudentsChart');
+        if (totalCtx && rawChartData.total_students) {
+            new Chart(totalCtx, {
+                type: 'line',
+                data: {
+                    labels: rawChartData.total_students.labels,
+                    datasets: [{
+                        label: rawChartData.total_students.label,
+                        data: rawChartData.total_students.data,
+                        borderColor: 'rgb(75, 192, 192)',
+                        backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                        fill: true,
+                        tension: 0.1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: { display: true, text: 'Number of Students' }
+                        },
+                        x: {
+                             title: { display: true, text: 'Batch Enrollment Year' }
+                        }
+                    },
+                     plugins: {
+                        legend: { display: true }
+                    }
+                }
+            });
+        } else {
+             console.warn("Total students chart canvas or data not found.");
+        }
+
+        // --- Initialize Students Per Program Chart ---
+        const programCtx = document.getElementById('studentsPerProgramChart');
+        if (programCtx && rawChartData.students_per_program && rawChartData.students_per_program.datasets.length > 0) {
+             new Chart(programCtx, {
+                type: 'line',
+                data: {
+                    labels: rawChartData.students_per_program.labels,
+                    datasets: rawChartData.students_per_program.datasets // Use datasets directly from view
+                },
+                 options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                             title: { display: true, text: 'Number of Students' }
+                        },
+                        x: {
+                             title: { display: true, text: 'Batch Enrollment Year' }
+                        }
+                    },
+                    plugins: {
+                        legend: { display: true, position: 'bottom' } // Legend at bottom for multiple lines
+                    }
+                }
+            });
+        } else {
+             console.warn("Students per program chart canvas or data not found.");
+        }
+    });
+</script>
+{% endblock %}

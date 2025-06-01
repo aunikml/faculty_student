@@ -1,0 +1,284 @@
+{% extends "responseupload/base.html" %}
+{% load custom_filters %} {# Load custom filters if used #}
+{% load progress_tags %} {# Load the progress tags #}
+
+{% block title %}Search Students{% endblock %}
+
+{% block extra_head %}
+  <style>
+    /* Table Styling */
+    .table-students {
+      font-size: 0.85rem; /* Smaller font for density */
+      border-collapse: separate; /* For rounded corners */
+      border-spacing: 0;
+      width: 100%;
+    }
+    .table-students thead th {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      background-color: #e9ecef; /* Light header background */
+      border-bottom: 2px solid #dee2e6;
+      padding: 0.6rem 0.4rem; /* Compact padding */
+      vertical-align: middle;
+      text-align: center;
+      white-space: nowrap;
+    }
+    .table-students tbody tr:hover {
+      background-color: #f8f9fa; /* Subtle hover effect */
+    }
+    .table-students td {
+      padding: 0.4rem 0.4rem; /* Compact padding */
+      vertical-align: middle;
+    }
+
+    /* Column Widths */
+    .col-student-id { width: 8%; }
+    .col-name { width: 15%; }
+    .col-batch { width: 12%; }
+    .col-program { width: 8%; }
+    .col-degree { width: 10%; }
+    .col-status { width: 10%; }
+    .col-progress { width: 20%; } /* Give progress bar more space */
+    .col-notes { width: 12%; }
+    .col-actions { width: 5%; text-align: center; }
+
+    /* Progress Bar */
+    .progress-bar {
+      height: 18px;
+      font-size: 0.65rem;
+      line-height: 18px;
+      overflow: hidden;
+      white-space: nowrap;
+      color: white;
+      font-weight: 500;
+      text-align: center;
+      /* transition: width 0.3s ease; */
+      border-right: 1px solid rgba(255, 255, 255, 0.2);
+      padding: 0 2px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .progress-bar:last-child {
+        border-right: none;
+    }
+    .progress {
+      background-color: #e9ecef;
+      border-radius: 0.2rem;
+      overflow: hidden;
+      width: 100%;
+      height: 18px;
+    }
+    .progress-percentage { /* For the text below the bar */
+        font-size: 0.75rem;
+        margin-top: 2px;
+        text-align: right;
+        color: #6c757d;
+    }
+
+    /* Status Badges */
+    .badge-status {
+      font-size: 0.75rem;
+      padding: 0.3em 0.6em;
+      border-radius: 0.25rem;
+      font-weight: 500;
+      white-space: nowrap;
+    }
+
+    /* Action Dropdown */
+    .action-dropdown .dropdown-toggle::after {
+        display: none; /* Hide default caret */
+    }
+    .action-dropdown .btn {
+        padding: 0.15rem 0.4rem; /* Smaller padding */
+        line-height: 1;
+    }
+     .action-dropdown .dropdown-menu {
+        font-size: 0.85rem; /* Smaller font in menu */
+    }
+    .action-dropdown .dropdown-item {
+        padding: 0.25rem 0.8rem;
+    }
+    .action-dropdown .dropdown-item i {
+        margin-right: 0.5rem;
+        width: 1em; /* Align icons */
+    }
+
+
+    /* Responsive Adjustments */
+    @media (max-width: 992px) { /* Hide notes earlier */
+      .col-notes { display: none; }
+      .col-degree { display: none; }
+    }
+     @media (max-width: 768px) {
+       .col-batch { display: none; }
+       .table-students { font-size: 0.8rem; }
+       .action-dropdown { /* Ensure dropdown doesn't get cut off */ position: static; }
+       .action-dropdown .dropdown-menu { /* Position relative to button */ }
+    }
+
+    /* Tooltip */
+    .tooltip-inner {
+        max-width: 300px; /* Allow wider tooltips */
+    }
+     .tooltip { z-index: 1080; } /* Ensure tooltip is above most elements */
+
+  </style>
+{% endblock extra_head %}
+
+{% block content %}
+<div class="container-fluid mt-4"> {# Use container-fluid for more width #}
+  <h2 class="mb-3">Search / View Students</h2>
+
+  <!-- Search Form -->
+  <div class="card shadow-sm mb-4">
+    <div class="card-body">
+      <form method="get" action="{% url 'managerpanel:search_students' %}" class="row g-3 align-items-end">
+        <div class="col-lg-2 col-md-4">
+          <label for="{{ form.query.id_for_label }}" class="form-label fw-bold">Search</label>
+          {{ form.query }}
+        </div>
+        <div class="col-lg-2 col-md-4">
+          <label for="{{ form.program.id_for_label }}" class="form-label fw-bold">Program</label>
+          {{ form.program }}
+        </div>
+        <div class="col-lg-2 col-md-4">
+          <label for="{{ form.cohort.id_for_label }}" class="form-label fw-bold">Cohort</label>
+          {{ form.cohort }}
+        </div>
+        <div class="col-lg-2 col-md-4">
+          <label for="{{ form.degree.id_for_label }}" class="form-label fw-bold">Degree</label>
+          {{ form.degree }}
+        </div>
+        <div class="col-lg-2 col-md-4">
+          <label for="{{ form.status.id_for_label }}" class="form-label fw-bold">Status</label>
+          {{ form.status }}
+        </div>
+        <div class="col-lg-1 col-md-4 d-grid">
+          <button type="submit" class="btn btn-primary btn-sm">
+            <i class="bi bi-filter"></i> Filter
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Search Results -->
+  <h3 class="mb-3">Student List</h3>
+  {% if query or status_filter or cohort_filter or degree_filter or program_filter %}
+    <p class="text-muted">Found {{ result_count }} student(s) matching filters.</p>
+  {% else %}
+    <p class="text-muted">Displaying all students ({{ result_count }} total).</p>
+  {% endif %}
+
+  {% if students_page.object_list %}
+    <div class="table-responsive">
+      <table class="table table-striped table-hover table-bordered table-sm table-students">
+        <thead>
+          <tr>
+            <th class="col-student-id">ID</th>
+            <th class="col-name">Name</th>
+            <th class="col-batch">Batch</th>
+            <th class="col-program">Program</th>
+            <th class="col-degree">Degree</th>
+            <th class="col-status">Status</th>
+            <th class="col-progress">Degree Progress</th>
+            <th class="col-notes">Notes</th>
+            <th class="col-actions">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for student in students_page %}
+            <tr>
+              <td class="col-student-id">{{ student.student_id }}</td>
+              <td class="col-name">{{ student.first_name }} {{ student.last_name }}</td>
+              <td class="col-batch">
+                {% if student.batch %}
+                  <a href="{% url 'managerpanel:batch_detail' student.batch.id %}">{{ student.batch.name }}</a>
+                {% else %} - {% endif %}
+              </td>
+              <td class="col-program">{{ student.batch.program.code|default:"-" }}</td>
+              <td class="col-degree">{{ student.get_degree_display|default:"-" }}</td>
+              <td class="col-status text-center">
+                <span class="badge badge-status
+                  {% if student.status == 'active' %} text-bg-success
+                  {% elif student.status == 'graduated' %} text-bg-primary
+                  {% elif student.status == 'inactive' %} text-bg-secondary
+                  {% elif student.status == 'dropped' %} text-bg-warning
+                  {% else %} text-bg-light text-dark {% endif %}">
+                  {{ student.get_status_display }}
+                </span>
+              </td>
+              <td class="col-progress">
+                  {# --- CORRECTED TAG USAGE --- #}
+                  {% degree_progress_bar student %}
+              </td>
+              <td class="col-notes">{{ student.notes|default:""|truncatechars:30|linebreaksbr }}</td>
+              <td class="col-actions">
+                {# --- Action Dropdown --- #}
+                <div class="dropdown action-dropdown">
+                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="actionMenuButton-{{ student.id }}" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="bi bi-three-dots-vertical"></i>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="actionMenuButton-{{ student.id }}">
+                        <li>
+                            <a class="dropdown-item" href="{% url 'managerpanel:edit_student' student.id %}" aria-label="Edit {{ student.first_name }}">
+                                <i class="bi bi-pencil-fill text-warning"></i> Edit
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item" href="{% url 'managerpanel:delete_student' student.id %}" aria-label="Delete {{ student.first_name }}">
+                                <i class="bi bi-trash-fill text-danger"></i> Delete
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Pagination -->
+    {% if students_page.has_other_pages %}
+      <nav aria-label="Student Search Results Pagination" class="mt-4">
+        <ul class="pagination justify-content-center flex-wrap">
+          {% with base_url="?query="|add:query|urlencode|add:"&status="|add:status_filter|urlencode|add:"&cohort="|add:cohort_filter|urlencode|add:"°ree="|add:degree_filter|urlencode|add:"&program="|add:program_filter|urlencode %}
+            {% if students_page.has_previous %}
+              <li class="page-item"><a class="page-link" href="{{ base_url }}&page=1" aria-label="First">««</a></li>
+              <li class="page-item"><a class="page-link" href="{{ base_url }}&page={{ students_page.previous_page_number }}" aria-label="Previous">«</a></li>
+            {% else %} <li class="page-item disabled"><span class="page-link">««</span></li> <li class="page-item disabled"><span class="page-link">«</span></li> {% endif %}
+            {% for num in students_page.paginator.page_range %} {% if students_page.number == num %} <li class="page-item active" aria-current="page"><span class="page-link">{{ num }}</span></li> {% elif num > students_page.number|add:'-3' and num < students_page.number|add:'3' %} <li class="page-item"><a class="page-link" href="{{ base_url }}&page={{ num }}">{{ num }}</a></li> {% elif num == students_page.number|add:'-3' or num == students_page.number|add:'3' %} {% if num > 1 and num < students_page.paginator.num_pages %} <li class="page-item disabled"><span class="page-link">...</span></li> {% endif %} {% endif %} {% endfor %}
+            {% if students_page.has_next %}
+              <li class="page-item"><a class="page-link" href="{{ base_url }}&page={{ students_page.next_page_number }}" aria-label="Next">»</a></li>
+              <li class="page-item"><a class="page-link" href="{{ base_url }}&page={{ students_page.paginator.num_pages }}" aria-label="Last">»»</a></li>
+            {% else %} <li class="page-item disabled"><span class="page-link">»</span></li> <li class="page-item disabled"><span class="page-link">»»</span></li> {% endif %}
+          {% endwith %}
+        </ul>
+      </nav>
+    {% endif %}
+
+  {% elif query or status_filter or cohort_filter or degree_filter or program_filter %}
+    <div class="alert alert-warning mt-3">No students found matching your criteria.</div>
+  {% else %}
+    <div class="alert alert-info mt-3">No students have been added yet.</div>
+  {% endif %}
+
+  <!-- Back Button -->
+  <div class="mt-4 mb-4">
+    <a href="{% url 'managerpanel:manager_dashboard' %}" class="btn btn-secondary">Back to Manager Dashboard</a>
+  </div>
+</div>
+{% endblock content %}
+
+{% block extra_js %}
+  <script>
+    // Initialize Bootstrap Tooltips
+    const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+    tooltipTriggerList.forEach(tooltipTriggerEl => {
+      new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+  </script>
+{% endblock extra_js %}

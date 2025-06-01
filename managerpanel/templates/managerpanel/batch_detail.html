@@ -1,0 +1,286 @@
+{% extends 'responseupload/base.html' %}
+{% load static %}
+{% load progress_tags %}
+
+{% block title %}Batch Details: {{ batch.name }}{% endblock title %}
+
+{% block extra_head %}
+    <style>
+        /* Table Styling */
+        .table th { white-space: nowrap; vertical-align: middle; background-color: #f8f9fa; text-align: center; font-weight: 600; }
+        .table td { vertical-align: middle; }
+        .table-hover tbody tr:hover { background-color: #f1f3f5; }
+        .table a { text-decoration: none; } .table a:hover { text-decoration: underline; }
+        .badge-status { font-size: 0.75rem; padding: 0.3em 0.6em; border-radius: 0.25rem; font-weight: 500; white-space: nowrap; }
+        .tooltip-inner { max-width: 300px; } .tooltip { z-index: 1080; }
+        .text-center-col { text-align: center; }
+        .actions-col { width: auto; white-space: nowrap; }
+        .edit-mode-col { width: auto; white-space: nowrap; text-align: center;}
+
+        /* Progress Bar & Edit Form Styles */
+        .progress-container {}
+        .progress-display .progress { height: 18px; background-color: #e9ecef; border-radius: 0.2rem; overflow: hidden; width: 100%; }
+        .progress-display .progress-bar { color: white; font-weight: 500; font-size: 0.65rem; line-height: 18px; text-align: center; overflow: hidden; white-space: nowrap; border-right: 1px solid rgba(255, 255, 255, 0.2); padding: 0 2px; display: flex; align-items: center; justify-content: center; }
+        .progress-display .progress-bar:last-child { border-right: none; }
+        .progress-display .progress-percentage { font-size: 0.75rem; margin-top: 2px; text-align: right; color: #6c757d; }
+        .progress-edit { display: none; margin-top: 0.75rem; padding: 15px; border: 1px solid #ced4da; border-radius: 0.25rem; background-color: #f8f9fa; box-shadow: inset 0 1px 1px rgba(0,0,0,.05); }
+        tr.edit-mode-active .progress-edit { display: block; }
+        tr.edit-mode-active .progress-display { display: none; }
+        .progress-edit-form h6 { margin-bottom: 0.75rem; font-weight: 600; }
+        .progress-edit-form .course-checklist { max-height: 200px; overflow-y: auto; margin-bottom: 0.75rem; padding: 10px; background-color: #fff; border: 1px solid #dee2e6; border-radius: 0.25rem;}
+        .progress-edit-form .form-check { margin-bottom: 0.3rem; }
+        .progress-edit-form .form-check-label { font-size: 0.85rem; }
+        .progress-edit-form .form-check-input { margin-top: 0.25rem; }
+        .progress-edit-actions { margin-top: 1rem; text-align: right; }
+    </style>
+{% endblock extra_head %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+        <div>
+            <h2>Batch: {{ batch.name }}</h2>
+            <p class="text-muted mb-0">
+                Program: <strong>{{ batch.program.name }} ({{ batch.program.code }})</strong> |
+                Cohort: <strong>{{ batch.cohort.name }}</strong> |
+                Status: <span class="badge {% if batch.status == batch.STATUS_ONGOING %}bg-success{% else %}bg-secondary{% endif %}">{{ batch.get_status_display }}</span> |
+                Year: <strong>{{ batch.year }}</strong>{% if batch.semester %} | Semester: <strong>{{ batch.semester.name }}</strong>{% endif %}
+            </p>
+        </div>
+        <div>
+            <a href="{% url 'managerpanel:add_student_manual' batch.id %}" class="btn btn-success btn-sm me-2"><i class="bi bi-person-plus-fill me-1"></i> Add Student</a>
+            <a href="{% url 'managerpanel:edit_batch' batch.id %}" class="btn btn-warning btn-sm me-2"><i class="bi bi-pencil-fill me-1"></i> Edit Batch</a>
+            <a href="{% url 'managerpanel:list_batches' %}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-list-ul me-1"></i> All Batches</a>
+        </div>
+    </div>
+    <hr>
+
+    {% include 'managerpanel/partials/_messages.html' %}
+
+    <h3>Students in Batch ({{ students_page.paginator.count }} Total)</h3>
+    {% if students_page.object_list %}
+        <div class="table-responsive shadow-sm rounded">
+            <table class="table table-striped table-hover table-bordered table-sm mb-0 align-middle student-detail-table">
+                 <thead class="table-light text-center">
+                    <tr>
+                        <th>ID</th>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Status</th>
+                        <th>Degree</th>
+                        <th>Progress <i class="bi bi-info-circle-fill" data-bs-toggle="tooltip" title="Student's course completion. Click switch to edit."></i></th>
+                        <th class="edit-mode-col">Edit Mode</th>
+                        <th class="actions-col">Actions</th>
+                    </tr>
+                 </thead>
+                 <tbody>
+                    {% for student in students_page %}
+                        <tr id="student-row-{{ student.id }}">
+                            <td>{{ student.student_id }}</td>
+                            <td>{{ student.first_name }} {{ student.last_name }}</td>
+                            <td>{{ student.email|default:"N/A" }}</td>
+                            <td class="text-center-col">
+                                <span class="badge badge-status
+                                    {% if student.status == 'active' %} text-bg-success
+                                    {% elif student.status == 'graduated' %} text-bg-primary
+                                    {% elif student.status == 'inactive' %} text-bg-secondary
+                                    {% elif student.status == 'dropped' %} text-bg-warning
+                                    {% else %} text-bg-light text-dark {% endif %}">
+                                    {{ student.get_status_display }}
+                                </span>
+                            </td>
+                             <td class="text-center-col">{{ student.get_degree_display|default:"-" }}</td>
+                            <td class="progress-container">
+                                <div class="progress-display">
+                                    {% degree_progress_bar student %}
+                                </div>
+                                <div class="progress-edit">
+                                    {# Ensure this URL exists #}
+                                    <form action="{% url 'managerpanel:update_student_progress' student.id %}" method="post" class="progress-edit-form" data-student-id="{{ student.id }}">
+                                        {% csrf_token %}
+                                        <h6>Edit Completed Courses for {{ student.first_name }}:</h6>
+                                        {% editable_progress_form_inputs student %}
+                                        <div class="progress-edit-actions">
+                                            <button type="button" class="btn btn-secondary btn-sm progress-edit-cancel"><i class="bi bi-x-lg"></i> Cancel</button>
+                                            <button type="submit" class="btn btn-success btn-sm"><i class="bi bi-check-lg"></i> Save Progress</button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </td>
+                            <td class="edit-mode-col">
+                                <div class="form-check form-switch d-flex justify-content-center">
+                                    <input class="form-check-input edit-progress-checkbox" type="checkbox" role="switch"
+                                           id="edit-mode-check-{{ student.id }}"
+                                           aria-label="Toggle progress editing for {{ student.first_name }}"
+                                           data-student-id="{{ student.id }}">
+                                </div>
+                            </td>
+                            <td class="actions-col text-center-col">
+                                <a href="{% url 'managerpanel:edit_student' student.id %}" class="btn btn-sm btn-outline-warning me-1" title="Edit Student Details" data-bs-toggle="tooltip"><i class="bi bi-pencil-fill"></i></a>
+                                <a href="#" onclick="confirmDelete('delete-form-{{ student.id }}', '{{ student.first_name|escapejs }} {{ student.last_name|escapejs }}'); return false;" class="btn btn-sm btn-outline-danger" title="Delete Student" data-bs-toggle="tooltip"><i class="bi bi-trash-fill"></i></a>
+                                <form id="delete-form-{{ student.id }}" action="{% url 'managerpanel:delete_student' student.id %}" method="post" style="display: none;">
+                                    {% csrf_token %}
+                                </form>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                 </tbody>
+            </table>
+        </div>
+
+        {# Pagination #}
+        {% if students_page.has_other_pages %}
+            <nav aria-label="Student list pagination" class="mt-4">
+                <ul class="pagination justify-content-center">
+                    {% if students_page.has_previous %}
+                        <li class="page-item"><a class="page-link" href="?page=1">««</a></li>
+                        <li class="page-item"><a class="page-link" href="?page={{ students_page.previous_page_number }}">«</a></li>
+                    {% else %}
+                        <li class="page-item disabled"><span class="page-link">««</span></li>
+                        <li class="page-item disabled"><span class="page-link">«</span></li>
+                    {% endif %}
+                    {% for num in students_page.paginator.page_range %}
+                        {% if students_page.number == num %}
+                            <li class="page-item active" aria-current="page"><span class="page-link">{{ num }}</span></li>
+                        {% elif num > students_page.number|add:'-3' and num < students_page.number|add:'3' %}
+                            <li class="page-item"><a class="page-link" href="?page={{ num }}">{{ num }}</a></li>
+                        {% elif num == students_page.number|add:'-3' or num == students_page.number|add:'3' %}
+                            {% if num > 1 and num < students_page.paginator.num_pages %} <li class="page-item disabled"><span class="page-link">...</span></li> {% endif %}
+                        {% endif %}
+                    {% endfor %}
+                    {% if students_page.has_next %}
+                        <li class="page-item"><a class="page-link" href="?page={{ students_page.next_page_number }}">»</a></li>
+                        <li class="page-item"><a class="page-link" href="?page={{ students_page.paginator.num_pages }}">»»</a></li>
+                    {% else %}
+                        <li class="page-item disabled"><span class="page-link">»</span></li>
+                        <li class="page-item disabled"><span class="page-link">»»</span></li>
+                    {% endif %}
+                </ul>
+            </nav>
+        {% endif %}
+
+    {% else %}
+        <div class="alert alert-info mt-3">No students found in this batch. You can <a href="{% url 'managerpanel:add_student_manual' batch.id %}" class="alert-link">add one manually</a> or <a href="{% url 'managerpanel:upload_students_csv' %}" class="alert-link">upload a CSV</a>.</div>
+    {% endif %}
+
+</div>
+{% endblock content %}
+
+{% block extra_js %}
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Activate Bootstrap Tooltips
+            const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+            tooltipTriggerList.forEach(tooltipTriggerEl => { new bootstrap.Tooltip(tooltipTriggerEl); });
+
+            const tableBody = document.querySelector('.student-detail-table tbody');
+            if (tableBody) {
+                tableBody.addEventListener('change', function(event) {
+                    const checkbox = event.target;
+                    if (checkbox.classList.contains('edit-progress-checkbox')) {
+                        const row = checkbox.closest('tr');
+                        if (row) {
+                            const form = row.querySelector('.progress-edit-form');
+                            const inputs = form.querySelectorAll('input[type="checkbox"][name="completed_courses"]');
+                            if (checkbox.checked) {
+                                row.classList.add('edit-mode-active');
+                                inputs.forEach(input => {
+                                    input.disabled = false;
+                                    // Store initial state if not already done
+                                    if (input.dataset.initialChecked === undefined) {
+                                        input.dataset.initialChecked = input.checked;
+                                    }
+                                });
+                            } else {
+                                row.classList.remove('edit-mode-active');
+                                inputs.forEach(input => {
+                                    // Revert to initial state on cancel/toggle off
+                                    if (input.dataset.initialChecked !== undefined) {
+                                        input.checked = (input.dataset.initialChecked === 'true');
+                                    }
+                                    input.disabled = true;
+                                });
+                            }
+                        }
+                    }
+                });
+
+                tableBody.addEventListener('click', function(event) {
+                     const cancelBtn = event.target.closest('.progress-edit-cancel');
+                     if (cancelBtn) {
+                         event.preventDefault();
+                         const row = cancelBtn.closest('tr');
+                         if (row) {
+                             const checkbox = row.querySelector('.edit-progress-checkbox');
+                             if(checkbox) {
+                                 checkbox.checked = false;
+                                 // Manually dispatch change event to trigger the other listener
+                                 checkbox.dispatchEvent(new Event('change', { bubbles: true }));
+                             }
+                         }
+                     }
+                });
+
+                // AJAX form submission for progress updates (Optional but good UX)
+                document.querySelectorAll('.progress-edit-form').forEach(form => {
+                    form.addEventListener('submit', function(event) {
+                        event.preventDefault();
+                        const studentId = this.dataset.studentId;
+                        const formData = new FormData(this);
+                        const submitButton = this.querySelector('button[type="submit"]');
+                        const cancelButton = this.querySelector('.progress-edit-cancel');
+                        const originalButtonText = submitButton.innerHTML;
+
+                        submitButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Saving...';
+                        submitButton.disabled = true;
+                        cancelButton.disabled = true;
+
+                        fetch(this.action, {
+                            method: 'POST',
+                            body: formData,
+                            headers: {'X-CSRFToken': this.querySelector('[name=csrfmiddlewaretoken]').value }
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                const studentRow = document.getElementById(`student-row-${studentId}`);
+                                const progressDisplayDiv = studentRow.querySelector('.progress-display');
+                                if (progressDisplayDiv && data.progress_html) {
+                                    progressDisplayDiv.innerHTML = data.progress_html;
+                                    const newTooltips = progressDisplayDiv.querySelectorAll('[data-bs-toggle="tooltip"]');
+                                    newTooltips.forEach(el => new bootstrap.Tooltip(el)); // Re-init tooltips
+                                }
+                                const checkbox = studentRow.querySelector('.edit-progress-checkbox');
+                                if (checkbox) { // Turn off edit mode
+                                    checkbox.checked = false;
+                                    checkbox.dispatchEvent(new Event('change', { bubbles: true }));
+                                }
+                                // Add a success message display here if desired
+                            } else {
+                                alert('Error updating progress: ' + (data.error || 'Unknown error. Check console.'));
+                                console.error("Progress update error data:", data);
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error submitting progress form:', error);
+                            alert('An error occurred while saving progress. Check console.');
+                        })
+                        .finally(() => {
+                            submitButton.innerHTML = originalButtonText;
+                            submitButton.disabled = false;
+                            cancelButton.disabled = false;
+                        });
+                    });
+                });
+            }
+        });
+
+        function confirmDelete(formId, studentName) {
+            if (confirm(`Are you sure you want to delete student "${studentName}"? This action cannot be undone.`)) {
+                const form = document.getElementById(formId);
+                if (form) { form.submit(); }
+                else { console.error('Delete form not found:', formId); alert('Error submitting delete.'); }
+            }
+        }
+    </script>
+{% endblock extra_js %}

@@ -1,0 +1,220 @@
+{% extends "responseupload/base.html" %} {# Assumes base.html is in responseupload/templates/responseupload/ #}
+{% load static %}
+{% load custom_filters %} {# Load your custom filters #}
+
+{% block title %}Faculty Dashboard - {{ request.user.get_full_name|default:request.user.username }}{% endblock %}
+
+{% block extra_css %}
+{# Add page-specific CSS here or link to a separate CSS file #}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+<style>
+    body {
+        background-color: #f8f9fa; /* Light grey background */
+    }
+    .faculty-name {
+        text-align: center;
+        margin-bottom: 2rem; /* More space below name */
+        color: #212529; /* Darker heading color */
+        font-weight: 500;
+    }
+    .course-card {
+        border: 1px solid #dee2e6; /* Slightly softer border */
+        border-radius: 0.375rem; /* Standard Bootstrap border-radius */
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05); /* Softer shadow */
+        transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+        margin-bottom: 1.5rem; /* Standard spacing */
+        display: flex; /* Needed for h-100 */
+        flex-direction: column; /* Needed for h-100 */
+        background-color: #fff; /* Ensure card background is white */
+    }
+    .course-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+    .card-header {
+        background-color: #0d6efd; /* Primary blue */
+        color: white;
+        font-weight: 600; /* Slightly bolder */
+        padding: 0.8rem 1rem;
+        border-bottom: none; /* Remove border below header */
+        border-top-left-radius: calc(0.375rem - 1px); /* Match card radius */
+        border-top-right-radius: calc(0.375rem - 1px);
+    }
+     .card-body {
+        flex-grow: 1; /* Makes body take available space */
+        display: flex;
+        flex-direction: column; /* Stack elements */
+        padding: 1rem; /* Standard padding */
+    }
+    .card-title {
+         font-size: 1.05rem; /* Slightly adjusted title */
+         margin-bottom: 0.75rem;
+         font-weight: 600;
+    }
+    .card-text {
+        font-size: 0.9rem;
+        color: #495057; /* Darker grey */
+        line-height: 1.5;
+    }
+     .card-text small {
+        color: #6c757d; /* Secondary text color */
+        display: block;
+        margin-top: 0.2rem;
+    }
+    .card-text strong {
+        color: #343a40; /* Darker text for labels */
+    }
+    .zoom-link {
+        color: #0d6efd;
+        text-decoration: none;
+        font-weight: 500;
+    }
+    .zoom-link:hover {
+        text-decoration: underline;
+    }
+    .zoom-link i, .card-text i.bi {
+        margin-right: 6px;
+        vertical-align: text-bottom; /* Align icon better */
+        color: #6c757d;
+    }
+    .zoom-link i.bi-camera-video-fill {
+        color: #0d6efd; /* Make zoom icon blue */
+    }
+    .batch-link {
+        font-weight: 500;
+        color: #0d6efd; /* Make batch link blue */
+    }
+    .batch-link:hover {
+        text-decoration: underline;
+    }
+    .evaluation-links {
+        margin-top: auto; /* Pushes this div to the bottom */
+        padding-top: 1rem; /* Space above buttons */
+        border-top: 1px solid #eee; /* Subtle separator */
+    }
+    .evaluation-links .btn {
+        margin-bottom: 0.5rem; /* Space below each button if they stack */
+        font-size: 0.8rem; /* Even smaller buttons */
+        padding: 0.25rem 0.5rem; /* Adjust padding */
+    }
+    .footer-links {
+        text-align: center;
+        padding: 1.5rem 0;
+        border-top: 1px solid #dee2e6;
+        margin-top: 2rem;
+    }
+    .no-assignments {
+        margin-top: 2rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <!-- Faculty Name -->
+    <div class="faculty-name">
+        <h2>Faculty Dashboard</h2>
+        <h4>{{ request.user.first_name }} {{ request.user.last_name }}</h4>
+    </div>
+
+    <h3 class="mb-4">Your Assigned Courses</h3>
+    <div class="row">
+        {# Loop through the CourseAssignment objects passed from the view #}
+        {% for assignment in assigned_course_assignments %}
+            <div class="col-md-6 col-lg-4 mb-4">
+                <div class="card h-100 course-card"> {# h-100 ensures cards in a row have same height #}
+                    <div class="card-header">
+                        {# Access course details via assignment.course #}
+                        <h5 class="card-title mb-0">{{ assignment.course.code }} - {{ assignment.course.name }}</h5>
+                    </div>
+                    <div class="card-body">
+                        {# Display assignment details #}
+                        <p class="card-text mb-1"><small><i class="bi bi-journal-text"></i> <strong>Program:</strong> {{ assignment.course.program.code|default:"N/A" }}</small></p>
+                        <p class="card-text mb-1"><small><i class="bi bi-diagram-3"></i> <strong>Section equivalent (Batch):</strong>
+                            {% if assignment.batch %}
+                                <a href="{% url 'responseupload:faculty_batch_detail' assignment.batch.id %}" class="batch-link text-decoration-none">
+                                    {{ assignment.batch.name }}
+                                </a>
+                            {% else %}
+                                N/A
+                            {% endif %}
+                        </small></p>
+                        <p class="card-text mb-1"><small><i class="bi bi-calendar-event"></i> <strong>Semester:</strong> {{ assignment.course.semester }} | <strong>Year:</strong> {{ assignment.course.year }}</small></p>
+                        <p class="card-text mb-1"><small><i class="bi bi-display"></i> <strong>Modality:</strong> {{ assignment.get_modality_display }}</small></p>
+                        <p class="card-text mb-1"><small><i class="bi bi-calendar-range"></i> <strong>Dates:</strong> {{ assignment.start_date|date:"M d" }} - {{ assignment.end_date|date:"M d, Y" }}</small></p>
+                        <p class="card-text mb-1"><small><i class="bi bi-clock-history"></i> <strong>Time:</strong> {{ assignment.start_time|time:"g:i A" }} - {{ assignment.end_time|time:"g:i A" }}</small></p>
+                        <p class="card-text mb-2"><small><i class="bi bi-calendar-week"></i> <strong>Days:</strong> {{ assignment.get_meeting_days }}</small></p>
+
+
+                        {% if assignment.zoom_link %}
+                            <p class="card-text mb-1"><a href="{{ assignment.zoom_link }}" target="_blank" class="zoom-link"><i class="bi bi-camera-video-fill"></i> Zoom Link</a></p>
+                        {% endif %}
+                        {% if assignment.zoom_host_code %}
+                             <p class="card-text mb-3"><small>Host Code: {{ assignment.zoom_host_code }}</small></p>
+                        {% endif %}
+
+                        {# --- Display Face-to-Face Sessions (if applicable) --- #}
+                        {% if assignment.modality == 'f2f' or assignment.modality == 'blended' %}
+                            {% with f2f_sessions=assignment.f2f_sessions.all %} {# Efficiently get sessions #}
+                                {% if f2f_sessions %}
+                                    <p class="card-text mt-2 mb-1"><small><strong><i class="bi bi-geo-alt-fill"></i> Face-to-Face Sessions:</strong></small></p>
+                                    <ul class="list-unstyled f2f-sessions-list ps-3"> {# Use list-unstyled and padding #}
+                                        {% for session in f2f_sessions|slice:":3" %} {# Limit to first 3 #}
+                                            <li>
+                                                <i class="bi bi-calendar-check"></i> {{ session.date|date:"D, M d" }} @ {{ session.time|time:"g:i A" }} - {{ session.location }}{% if session.room_number %} ({{ session.room_number }}){% endif %}
+                                            </li>
+                                        {% endfor %}
+                                        {% if f2f_sessions|length > 3 %}
+                                            <li><small>... and {{ f2f_sessions|length|add:"-3" }} more.</small></li>
+                                        {% endif %}
+                                    </ul>
+                                {% else %}
+                                    <p class="card-text mt-2"><small><i class="bi bi-info-circle"></i> No specific F2F sessions listed.</small></p>
+                                {% endif %}
+                            {% endwith %}
+                        {% endif %}
+                        {# --- End Face-to-Face Sessions --- #}
+
+
+                        {# --- Evaluation Links (Conditional) --- #}
+                        <div class="evaluation-links d-grid gap-2 d-sm-flex justify-content-start"> {# Use mt-auto to push to bottom #}
+                            {# Check if the course ID is in the set of IDs with faculty responses for this user #}
+                            {% if assignment.course.id in faculty_response_course_ids %}
+                                <a href="{% url 'responseupload:course_detail' assignment.id %}" class="btn btn-sm btn-primary me-sm-1 mb-1"> {# Use assignment.id #}
+                                   <i class="bi bi-person-check-fill me-1"></i> Faculty Eval ({{ faculty_response_counts|get_item:assignment.course.id|default:0 }})
+                                </a>
+                            {% endif %}
+                            {# Check if the course ID is in the set of IDs with course responses for this user #}
+                            {% if assignment.course.id in course_response_course_ids %}
+                                <a href="{% url 'responseupload:course_response_detail' assignment.id %}" class="btn btn-sm btn-info mb-1"> {# Use assignment.id #}
+                                   <i class="bi bi-journal-check me-1"></i> Course Eval ({{ course_response_counts|get_item:assignment.course.id|default:0 }})
+                                </a>
+                            {% endif %}
+                            {# Show message if no evaluations available yet for this specific assignment's course for this user #}
+                            {% if assignment.course.id not in faculty_response_course_ids and assignment.course.id not in course_response_course_ids %}
+                                <span class="text-muted d-block mt-2"><small>No evaluation data available yet.</small></span>
+                            {% endif %}
+                        </div>
+                        {# --- End Evaluation Links --- #}
+
+                    </div> {# End card-body #}
+                </div> {# End card #}
+            </div> {# End col #}
+        {% empty %}
+            <div class="col-12">
+                <div class="alert alert-info no-assignments">You have not been assigned any courses yet.</div>
+            </div>
+        {% endfor %}
+    </div> {# End row #}
+
+     <!-- Footer Links -->
+    <div class="footer-links mt-5"> {# Increased top margin #}
+        <a href="{% url 'responseupload:change_password' %}" class="btn btn-outline-secondary btn-sm me-2"><i class="bi bi-key me-1"></i> Change Password</a>
+        <a href="{% url 'responseupload:logout' %}" class="btn btn-outline-danger btn-sm"><i class="bi bi-box-arrow-right me-1"></i> Logout</a>
+    </div>
+</div> {# End container #}
+{% endblock %}
+
+{% block extra_js %}
+{# No extra JS needed specifically for this page's core functionality #}
+{% endblock %}

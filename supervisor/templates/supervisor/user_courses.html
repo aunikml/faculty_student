@@ -1,0 +1,83 @@
+{% extends 'responseupload/base.html' %}
+
+{% block title %}{{ selected_user.first_name }} {{ selected_user.last_name }}'s Courses{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <!-- Faculty Name Section -->
+    <div class="text-center mb-4">
+        <h2 class="fw-bold text-primary">Faculty: {{ selected_user.first_name }} {{ selected_user.last_name }}</h2>
+    </div>
+
+    <!-- Courses Section -->
+    <div class="row">
+        <!-- Faculty Evaluation Section -->
+        <div class="col-md-6 mb-4">
+            <div class="card shadow-sm border-0 card-hover">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">Faculty Evaluation</h4>
+                </div>
+                <div class="card-body">
+                    <ul class="list-group list-group-flush">
+                        {% for course in faculty_response_courses %}
+                            <li class="list-group-item">
+                                <a href="{% url 'responseupload:course_detail' course.id selected_user.id %}" class="text-decoration-none text-dark fw-bold">
+                                    {{ course.code }} - {{ course.name }}
+                                </a>
+                                <br>
+                                <small class="text-muted">
+                                    Semester: {{ course.semester }}, Year: {{ course.year }}
+                                </small>
+                            </li>
+                        {% empty %}
+                            <li class="list-group-item text-muted">No courses assigned for faculty evaluation yet.</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Course Evaluation Section -->
+        <div class="col-md-6 mb-4">
+            <div class="card shadow-sm border-0 card-hover">
+                <div class="card-header bg-secondary text-white">
+                    <h4 class="mb-0">Course Evaluation</h4>
+                </div>
+                <div class="card-body">
+                    <ul class="list-group list-group-flush">
+                        {% for course in course_response_courses %}
+                            <li class="list-group-item">
+                                <a href="{% url 'responseupload:course_response_detail' course.id selected_user.id %}" class="text-decoration-none text-dark fw-bold">
+                                    {{ course.code }} - {{ course.name }}
+                                </a>
+                                <br>
+                                <small class="text-muted">
+                                    Semester: {{ course.semester }}, Year: {{ course.year }}
+                                </small>
+                            </li>
+                        {% empty %}
+                            <li class="list-group-item text-muted">No courses assigned for course evaluation yet.</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Back to Dashboard Button -->
+    <div class="text-center mt-4">
+        <a href="{% url 'supervisor:supervisor_dashboard' %}" class="btn btn-outline-primary">Back to Supervisor Dashboard</a>
+    </div>
+</div>
+
+<!-- Additional Styles -->
+<style>
+    .card-hover {
+        transition: transform 0.3s, box-shadow 0.3s;
+    }
+    .card-hover:hover {
+        transform: scale(1.03);
+        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+    }
+</style>
+{% endblock %}

@@ -1,0 +1,58 @@
+{% extends "responseupload/base.html" %} {# Or your faculty-specific base template #}
+
+{% block title %}Student List - Batch {{ batch.name }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Student List for Batch: {{ batch.name }}</h2>
+    <p><strong>Year:</strong> {{ batch.year }} | <strong>Semester:</strong> {{ batch.semester.name|default:"N/A" }}</p>
+
+    <div class="mb-3">
+        <a href="{% url 'responseupload:dashboard' %}" class="btn btn-secondary">Back to Dashboard</a>
+    </div>
+
+     {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+        {% endfor %}
+    {% endif %}
+
+    {% if students %}
+        <div class="table-responsive">
+            <table class="table table-striped table-hover table-bordered"> {# Added table-bordered #}
+                <thead class="table-light"> {# Lighter header for faculty view #}
+                    <tr>
+                        <th>Student ID</th>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Phone</th>
+                        <th>Enrollment Semester</th>
+                        <th>Status</th>
+                        <th>Notes</th> {# Added notes column #}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for student in students %}
+                        <tr>
+                            <td>{{ student.student_id }}</td>
+                            <td>{{ student.first_name }} {{ student.last_name }}</td>
+                            <td>{{ student.email }}</td>
+                            <td>{{ student.phone_number|default:"N/A" }}</td>
+                            <td>{{ student.enrollment_semester.name|default:"N/A" }}</td>
+                            <td>{{ student.get_status_display }}</td>
+                            <td>{{ student.notes|default:""|linebreaksbr }}</td> {# Display notes with line breaks #}
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <div class="alert alert-info">No students found in this batch.</div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{# Include Bootstrap JS if not in base template #}
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+{% endblock %}

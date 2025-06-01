@@ -1,0 +1,1 @@
+web: gunicorn faculty_eval.wsgi:application --log-file -

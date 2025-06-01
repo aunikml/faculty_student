@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ form_title|default:"Assign New Course" }}</title> {# Use form_title from view context #}
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    {# Optional: Add Select2 for better dropdowns if needed #}
+    {# <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" /> #}
+    <style>
+        /* Optional: Add custom styles if needed */
+        .day-checkboxes label {
+            margin-right: 15px; /* Space between checkboxes */
+        }
+        .form-label {
+            font-weight: 500;
+        }
+        .form-section {
+            background-color: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .form-section h4 {
+            margin-bottom: 15px;
+            border-bottom: 1px solid #dee2e6;
+            padding-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-4 mb-5"> {# Added margin bottom #}
+        <h2>{{ form_title|default:"Assign New Course" }}</h2>
+        <hr>
+
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+
+        <form method="post" novalidate> {# novalidate prevents browser validation, relying on Django's #}
+            {% csrf_token %}
+
+            {# --- General Assignment Info --- #}
+            <div class="form-section">
+                <h4>Course and Faculty</h4>
+                {# Render non-field errors if any #}
+                {% if form.non_field_errors %}
+                    <div class="alert alert-danger">
+                        {% for error in form.non_field_errors %}
+                            {{ error }}
+                        {% endfor %}
+                    </div>
+                {% endif %}
+
+                {# Render Course Field #}
+                <div class="mb-3">
+                    <label for="{{ form.course.id_for_label }}" class="form-label">{{ form.course.label }}</label>
+                    {{ form.course }}
+                    {% if form.course.help_text %}
+                        <small class="form-text text-muted">{{ form.course.help_text }}</small>
+                    {% endif %}
+                    {% for error in form.course.errors %}
+                        <div class="invalid-feedback d-block">{{ error }}</div>
+                    {% endfor %}
+                </div>
+
+                 {# Render Batch Field #}
+                 <div class="mb-3">
+                    <label for="{{ form.batch.id_for_label }}" class="form-label">{{ form.batch.label }}</label>
+                    {{ form.batch }}
+                    {% if form.batch.help_text %}
+                        <small class="form-text text-muted">{{ form.batch.help_text }}</small>
+                    {% endif %}
+                    {% for error in form.batch.errors %}
+                        <div class="invalid-feedback d-block">{{ error }}</div>
+                    {% endfor %}
+                </div>
+
+                {# Render Modality Field #}
+                <div class="mb-3">
+                    <label for="{{ form.modality.id_for_label }}" class="form-label">{{ form.modality.label }}</label>
+                    {{ form.modality }}
+                    {% if form.modality.help_text %}
+                        <small class="form-text text-muted">{{ form.modality.help_text }}</small>
+                    {% endif %}
+                    {% for error in form.modality.errors %}
+                        <div class="invalid-feedback d-block">{{ error }}</div>
+                    {% endfor %}
+                </div>
+
+                 {# Render Faculty Members Field #}
+                 <div class="mb-3">
+                    <label for="{{ form.faculty_members.id_for_label }}" class="form-label">{{ form.faculty_members.label }}</label>
+                    {{ form.faculty_members }}
+                    {% if form.faculty_members.help_text %}
+                        <small class="form-text text-muted">{{ form.faculty_members.help_text }}</small>
+                    {% endif %}
+                    {% for error in form.faculty_members.errors %}
+                        <div class="invalid-feedback d-block">{{ error }}</div>
+                    {% endfor %}
+                </div>
+            </div>
+
+             {# --- Schedule and Days --- #}
+            <div class="form-section">
+                <h4>Schedule and Days</h4>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="{{ form.start_date.id_for_label }}" class="form-label">{{ form.start_date.label }}</label>
+                        {{ form.start_date }}
+                        {% for error in form.start_date.errors %} <div class="invalid-feedback d-block">{{ error }}</div> {% endfor %}
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="{{ form.end_date.id_for_label }}" class="form-label">{{ form.end_date.label }}</label>
+                        {{ form.end_date }}
+                        {% for error in form.end_date.errors %} <div class="invalid-feedback d-block">{{ error }}</div> {% endfor %}
+                    </div>
+                </div>
+                 <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="{{ form.start_time.id_for_label }}" class="form-label">{{ form.start_time.label }}</label>
+                        {{ form.start_time }}
+                         {% for error in form.start_time.errors %} <div class="invalid-feedback d-block">{{ error }}</div> {% endfor %}
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="{{ form.end_time.id_for_label }}" class="form-label">{{ form.end_time.label }}</label>
+                        {{ form.end_time }}
+                        {% for error in form.end_time.errors %} <div class="invalid-feedback d-block">{{ error }}</div> {% endfor %}
+                    </div>
+                </div>
+                {# Meeting Days Checkboxes #}
+                 <div class="mb-3 day-checkboxes">
+                    <label class="form-label d-block fw-bold">Meeting Days:</label>
+                    <div class="d-flex flex-wrap gap-3">
+                        <div class="form-check form-check-inline">
+                            {{ form.meets_on_monday }} {{ form.meets_on_monday.label_tag }}
+                        </div>
+                        <div class="form-check form-check-inline">
+                            {{ form.meets_on_tuesday }} {{ form.meets_on_tuesday.label_tag }}
+                        </div>
+                        <div class="form-check form-check-inline">
+                            {{ form.meets_on_wednesday }} {{ form.meets_on_wednesday.label_tag }}
+                        </div>
+                        <div class="form-check form-check-inline">
+                            {{ form.meets_on_thursday }} {{ form.meets_on_thursday.label_tag }}
+                        </div>
+                         <div class="form-check form-check-inline">
+                            {{ form.meets_on_friday }} {{ form.meets_on_friday.label_tag }}
+                        </div>
+                        <div class="form-check form-check-inline">
+                            {{ form.meets_on_saturday }} {{ form.meets_on_saturday.label_tag }}
+                        </div>
+                         <div class="form-check form-check-inline">
+                            {{ form.meets_on_sunday }} {{ form.meets_on_sunday.label_tag }}
+                        </div>
+                    </div>
+                     {# You can add error display for checkboxes if needed, though less common #}
+                </div>
+                {# Number of Classes #}
+                 <div class="mb-3">
+                    <label for="{{ form.num_classes.id_for_label }}" class="form-label">{{ form.num_classes.label }}</label>
+                    {{ form.num_classes }}
+                    {% if form.num_classes.help_text %}
+                        <small class="form-text text-muted">{{ form.num_classes.help_text }}</small>
+                    {% endif %}
+                     {% for error in form.num_classes.errors %} <div class="invalid-feedback d-block">{{ error }}</div> {% endfor %}
+                </div>
+            </div>
+
+            {# --- Online Details (Optional) --- #}
+            <div class="form-section">
+                <h4>Online Details (Optional)</h4>
+                 <div class="mb-3">
+                    <label for="{{ form.zoom_link.id_for_label }}" class="form-label">{{ form.zoom_link.label }}</label>
+                    {{ form.zoom_link }}
+                     {% if form.zoom_link.help_text %}
+                        <small class="form-text text-muted">{{ form.zoom_link.help_text }}</small>
+                    {% endif %}
+                     {% for error in form.zoom_link.errors %} <div class="invalid-feedback d-block">{{ error }}</div> {% endfor %}
+                </div>
+                 <div class="mb-3">
+                    <label for="{{ form.zoom_host_code.id_for_label }}" class="form-label">{{ form.zoom_host_code.label }}</label>
+                    {{ form.zoom_host_code }}
+                     {% if form.zoom_host_code.help_text %}
+                        <small class="form-text text-muted">{{ form.zoom_host_code.help_text }}</small>
+                    {% endif %}
+                     {% for error in form.zoom_host_code.errors %} <div class="invalid-feedback d-block">{{ error }}</div> {% endfor %}
+                </div>
+            </div>
+
+            <div class="mt-4">
+                <button type="submit" class="btn btn-success">Assign Course</button>
+                <a href="{% url 'managerpanel:manager_dashboard' %}" class="btn btn-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    {# Optional: Add Select2 JS if you used its CSS #}
+    {# <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script>
+        $(document).ready(function() {
+            // Initialize Select2 for better dropdowns (if needed)
+            // $('#id_course').select2({ theme: "bootstrap-5" }); // Example for course field
+            // $('#id_batch').select2({ theme: "bootstrap-5" });
+            // $('#id_faculty_members').select2({ theme: "bootstrap-5" });
+        });
+    </script> #}
+</body>
+</html>

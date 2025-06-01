@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Confirm Batch Deletion</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-4">
+        <h2>Confirm Deletion</h2>
+        <p>Are you sure you want to delete the batch "<strong>{{ batch.name }}</strong>"?</p>
+        {% if student_count > 0 %}
+            <p class="text-danger"><strong>Warning:</strong> This batch contains {{ student_count }} student(s). Deleting the batch will also delete all associated students.</p>
+        {% endif %}
+
+        <form method="post">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-danger">Yes, Delete Batch</button>
+            <a href="{% url 'managerpanel:list_batches' %}" class="btn btn-secondary">Cancel</a>
+        </form>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
